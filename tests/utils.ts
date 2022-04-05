@@ -26,7 +26,7 @@ export const generateToken = async (
     .setExpirationTime(exp !== undefined ? exp : '1h')
     ;
 
-  const signatureKeyJWK = await jose.importJWK(signatureKey, 'RS256');
+  const signatureKeyJWK = await jose.importJWK(signatureKey as jose.JWK, 'RS256');
   const signedTokenSerialized = await signedToken.sign(signatureKeyJWK);
 
   if (encrypt) {
@@ -35,7 +35,7 @@ export const generateToken = async (
       .setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256CBC-HS512' })
       ;
 
-    const encryptionKeyJWK = await jose.importJWK(encryptionKey, 'RSA-OAEP-256');
+    const encryptionKeyJWK = await jose.importJWK(encryptionKey as jose.JWK, 'RSA-OAEP-256');
     const encryptedTokenSerialized = await encryptedToken.encrypt(encryptionKeyJWK);
     return encryptedTokenSerialized;
   }

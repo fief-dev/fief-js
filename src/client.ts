@@ -3,7 +3,7 @@ import * as jose from 'jose';
 import * as qs from 'qs';
 import { isValidHash } from './crypto';
 
-interface FiefTokenResponse {
+export interface FiefTokenResponse {
   access_token: string;
   id_token: string;
   token_type: string;
@@ -11,7 +11,7 @@ interface FiefTokenResponse {
   refresh_token?: string;
 }
 
-interface FiefAccessTokenInfo {
+export interface FiefAccessTokenInfo {
   id: string;
   scope: string[];
   access_token: string;
@@ -136,7 +136,7 @@ export class Fief {
       grant_type: 'refresh_token',
       client_id: this.clientId,
       refresh_token: refreshToken,
-      scope: scope.join(' '),
+      ...scope ? { scope: scope.join(' ') } : {},
     });
 
     const { data } = await this.client.post<FiefTokenResponse>(
@@ -184,7 +184,7 @@ export class Fief {
       }
 
       return {
-        id: claims.sub,
+        id: claims.sub as string,
         scope: accessTokenScopes,
         access_token: accessToken,
       };

@@ -262,7 +262,7 @@ describe('validateAccessToken', () => {
     expect(info).toStrictEqual({
       id: userId,
       scope: ['openid', 'offline_access'],
-      access_token: accessToken,
+      access_token: newAccessToken,
     });
   });
 });
