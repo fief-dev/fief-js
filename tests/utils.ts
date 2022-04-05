@@ -11,7 +11,7 @@ export const encryptionKey = jwks.keys.find((key) => key.kid === 'fief-client-te
 
 export const userId = uuidv4();
 
-export const generateToken = async (encrypt: boolean, claims?: Record<string, string>): Promise<string> => {
+export const generateToken = async (encrypt: boolean, claims?: Record<string, string | number>, exp?: number): Promise<string> => {
   const signedToken = await new jose
     .SignJWT({ email: 'anne@bretagne.duchy', ...claims ? { ...claims } : {} })
     .setProtectedHeader({ alg: 'RS256' })
@@ -19,7 +19,7 @@ export const generateToken = async (encrypt: boolean, claims?: Record<string, st
     .setSubject(userId)
     .setIssuer('https://bretagne.fief.dev')
     .setAudience(['CLIENT_ID'])
-    .setExpirationTime('1h')
+    .setExpirationTime(exp !== undefined ? exp : '1h')
     ;
 
   const signatureKeyJWK = await jose.importJWK(signatureKey, 'RS256');

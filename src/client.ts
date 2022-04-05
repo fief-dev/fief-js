@@ -50,7 +50,7 @@ export class Fief {
       jose
         .importJWK(JSON.parse(parameters.encryptionKey), 'RSA-OAEP-256')
         .then((encryptionKey) => this.encryptionKey = encryptionKey)
-      ;
+        ;
     }
 
     this.client = axios.create({
@@ -114,6 +114,82 @@ export class Fief {
     });
 
     return [data, userinfo];
+  }
+
+  public async authRefreshToken(refreshToken: string, scope?: string[]): Promise<[FiefTokenResponse, Record<string, any>]> {
+    const openIDConfiguration = await this.getOpenIDConfiguration();
+    const payload = qs.stringify({
+      grant_type: 'refresh_token',
+      client_id: this.clientId,
+      refresh_token: refreshToken,
+    });
+
+    const { data } = await this.client.post<FiefTokenResponse>(
+      openIDConfiguration['token_endpoint'],
+      payload,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    const userinfo = await this.decodeIDToken({
+      idToken: data.id_token,
+      jwks: await this.getJWKS(),
+      accessToken: data.access_token,
+    });
+
+    return [data, userinfo];
+  }
+
+  public async validateAcessToken(accessToken: string, requiredScope?: string[]): Promise<FiefAccessTokenInfo> {
+    const signatureKeys = jose.createLocalJWKSet(await this.getJWKS());
+    try {
+      const { payload: claims } = await jose.jwtVerify(accessToken, signatureKeys);
+
+      const scope = claims["scope"] as (string | undefined);
+      if (scope === undefined) {
+        throw new FiefAccessTokenInvalid();
+      }
+      const accessTokenScopes = scope.split(' ');
+
+      if (requiredScope) {
+        for (const scope of requiredScope) {
+          const inAccessTokenScopes = accessTokenScopes.some((accessTokenScope) => accessTokenScope === scope);
+          if (!inAccessTokenScopes) {
+            throw new FiefAccessTokenMissingScope();
+          }
+        }
+      }
+
+      return {
+        id: claims['sub'],
+        scope: accessTokenScopes,
+        access_token: accessToken,
+      };
+
+    } catch (err) {
+      if (err instanceof jose.errors.JWTExpired) {
+        throw new FiefAccessTokenExpired();
+      } else if (err instanceof jose.errors.JOSEError) {
+        throw new FiefAccessTokenInvalid();
+      }
+      throw err;
+    }
+  }
+
+  public async userinfo(accessToken: string): Promise<Record<string, any>> {
+    const openIDConfiguration = await this.getOpenIDConfiguration();
+    const { data } = await this.client.get<Record<string, any>>(
+      openIDConfiguration['userinfo_endpoint'],
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        }
+      },
+    );
+    return data;
   }
 
   private async getOpenIDConfiguration(): Promise<Record<string, any>> {
