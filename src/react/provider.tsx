@@ -5,7 +5,7 @@ import { FiefAuth } from '../browser';
 import { Fief, FiefParameters } from '../client';
 import FiefAuthContext from './context';
 
-interface FiefAuthProviderProps extends FiefParameters { }
+export interface FiefAuthProviderProps extends FiefParameters { }
 
 const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = (props) => {
   const {

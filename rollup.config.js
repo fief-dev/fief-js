@@ -30,7 +30,7 @@ export default [
       }),
     ],
   },
-  // CommonJS (for Node) and ES module (for bundlers) build.
+  // CommonJS (for Node)
   {
     input: [
       'src/index.ts',
@@ -38,7 +38,7 @@ export default [
     ],
     external: ['ms'],
     plugins: [
-      typescript(),
+      typescript({ declaration: false }),
     ],
     output: [
       {
@@ -48,6 +48,22 @@ export default [
         preserveModules: true,
         preserveModulesRoot: 'src',
       },
+    ],
+  },
+  // ES module (for bundlers) build.
+  {
+    input: [
+      'src/index.ts',
+      'src/react/index.ts',
+    ],
+    external: ['ms'],
+    plugins: [
+      typescript({
+        declaration: true,
+        declarationDir: 'build/esm',
+      }),
+    ],
+    output: [
       {
         dir: 'build/esm',
         format: 'es',
