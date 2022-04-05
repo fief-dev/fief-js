@@ -1,1 +1,8 @@
-export { Fief } from './client';
+export {
+  Fief,
+  FiefAccessTokenExpired,
+  FiefAccessTokenInvalid,
+  FiefAccessTokenMissingScope,
+  FiefError,
+  FiefIdTokenInvalid,
+} from './client';

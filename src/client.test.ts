@@ -1,11 +1,19 @@
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 
-import { Fief, FiefAccessTokenExpired, FiefAccessTokenInvalid, FiefAccessTokenMissingScope, FiefIdTokenInvalid } from './client';
-import { generateToken, signatureKeyPublic, encryptionKey, userId } from '../tests/utils';
+import {
+  Fief,
+  FiefAccessTokenExpired,
+  FiefAccessTokenInvalid,
+  FiefAccessTokenMissingScope,
+  FiefIdTokenInvalid,
+} from './client';
+import {
+  generateToken, signatureKeyPublic, encryptionKey, userId,
+} from '../tests/utils';
 import { getValidationHash } from './crypto';
 
-var axiosMock = new MockAdapter(axios);
+const axiosMock = new MockAdapter(axios);
 
 const HOSTNAME = 'https://bretagne.fief.dev';
 const fief = new Fief({
@@ -56,14 +64,12 @@ describe('getAuthURL', () => {
       [{ scope: ['SCOPE_1', 'SCOPE_2'] }, '&scope=SCOPE_1+SCOPE_2'],
       [{ extrasParams: { foo: 'bar' } }, '&foo=bar'],
     ],
-  )('should generate URL with params %o', (parameters, expected_parameters) => {
-    return fief.getAuthURL({
-      redirectURI: 'https://www.bretagne.duchy/callback',
-      ...parameters,
-    }).then((result) => {
-      expect(result).toBe(`https://bretagne.fief.dev/auth/authorize?response_type=code&client_id=CLIENT_ID&redirect_uri=https%3A%2F%2Fwww.bretagne.duchy%2Fcallback${expected_parameters}`)
-    });
-  });
+  )('should generate URL with params %o', (parameters, expectedParameters) => fief.getAuthURL({
+    redirectURI: 'https://www.bretagne.duchy/callback',
+    ...parameters,
+  }).then((result) => {
+    expect(result).toBe(`https://bretagne.fief.dev/auth/authorize?response_type=code&client_id=CLIENT_ID&redirect_uri=https%3A%2F%2Fwww.bretagne.duchy%2Fcallback${expectedParameters}`);
+  }));
 });
 
 describe('authCallback', () => {
@@ -71,9 +77,9 @@ describe('authCallback', () => {
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": accessToken,
-        "id_token": signedIdToken,
-        "token_type": 'bearer',
+        access_token: accessToken,
+        id_token: signedIdToken,
+        token_type: 'bearer',
       },
     );
 
@@ -81,16 +87,16 @@ describe('authCallback', () => {
     expect(tokenResponse.access_token).toBe(accessToken);
     expect(tokenResponse.id_token).toBe(signedIdToken);
 
-    expect(userinfo["sub"]).toBe(userId);
+    expect(userinfo.sub).toBe(userId);
   });
 
   it('should validate and decode encrypted ID token', async () => {
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": accessToken,
-        "id_token": encryptedIdToken,
-        "token_type": 'bearer',
+        access_token: accessToken,
+        id_token: encryptedIdToken,
+        token_type: 'bearer',
       },
     );
 
@@ -98,16 +104,16 @@ describe('authCallback', () => {
     expect(tokenResponse.access_token).toBe(accessToken);
     expect(tokenResponse.id_token).toBe(encryptedIdToken);
 
-    expect(userinfo["sub"]).toBe(userId);
+    expect(userinfo.sub).toBe(userId);
   });
 
   it('should reject invalid ID token', async () => {
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": accessToken,
-        "id_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
-        "token_type": 'bearer',
+        access_token: accessToken,
+        id_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        token_type: 'bearer',
       },
     );
 
@@ -123,9 +129,9 @@ describe('authCallback', () => {
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": accessToken,
-        "id_token": encryptedIdToken,
-        "token_type": 'bearer',
+        access_token: accessToken,
+        id_token: encryptedIdToken,
+        token_type: 'bearer',
       },
     );
 
@@ -141,14 +147,17 @@ describe('authCallback', () => {
     const codeValidationHash = await getValidationHash('CODE');
     const accessTokenValidationHash = await getValidationHash('ACCESS_TOKEN');
 
-    const idToken = await generateToken(false, { c_hash: codeValidationHash, at_hash: accessTokenValidationHash });
+    const idToken = await generateToken(
+      false,
+      { c_hash: codeValidationHash, at_hash: accessTokenValidationHash },
+    );
 
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": 'ACCESS_TOKEN',
-        "id_token": idToken,
-        "token_type": 'bearer',
+        access_token: 'ACCESS_TOKEN',
+        id_token: idToken,
+        token_type: 'bearer',
       },
     );
 
@@ -156,21 +165,24 @@ describe('authCallback', () => {
     expect(tokenResponse.access_token).toBe('ACCESS_TOKEN');
     expect(tokenResponse.id_token).toBe(idToken);
 
-    expect(userinfo["sub"]).toBe(userId);
+    expect(userinfo.sub).toBe(userId);
   });
 
   it('should reject invalid at_hash and c_hash claims', async () => {
     const codeValidationHash = await getValidationHash('INVALID_CODE');
     const accessTokenValidationHash = await getValidationHash('INVALID_ACCESS_TOKEN');
 
-    const idToken = await generateToken(false, { c_hash: codeValidationHash, at_hash: accessTokenValidationHash });
+    const idToken = await generateToken(
+      false,
+      { c_hash: codeValidationHash, at_hash: accessTokenValidationHash },
+    );
 
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": 'ACCESS_TOKEN',
-        "id_token": idToken,
-        "token_type": 'bearer',
+        access_token: 'ACCESS_TOKEN',
+        id_token: idToken,
+        token_type: 'bearer',
       },
     );
 
@@ -188,9 +200,9 @@ describe('authRefreshToken', () => {
     axiosMock.onPost('/auth/token').reply(
       200,
       {
-        "access_token": accessToken,
-        "id_token": signedIdToken,
-        "token_type": 'bearer',
+        access_token: accessToken,
+        id_token: signedIdToken,
+        token_type: 'bearer',
       },
     );
 
@@ -198,10 +210,9 @@ describe('authRefreshToken', () => {
     expect(tokenResponse.access_token).toBe(accessToken);
     expect(tokenResponse.id_token).toBe(signedIdToken);
 
-    expect(userinfo["sub"]).toBe(userId);
+    expect(userinfo.sub).toBe(userId);
   });
 });
-
 
 describe('validateAccessToken', () => {
   it('should reject invalid signature', async () => {
@@ -223,31 +234,31 @@ describe('validateAccessToken', () => {
   });
 
   it('should reject expired access token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid' }, 0);
+    const newAccessToken = await generateToken(false, { scope: 'openid' }, 0);
 
     expect.assertions(1);
     try {
-      await fief.validateAcessToken(accessToken);
+      await fief.validateAcessToken(newAccessToken);
     } catch (err) {
       expect(err).toBeInstanceOf(FiefAccessTokenExpired);
     }
   });
 
   it('should reject if missing required scope', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid' });
+    const newAccessToken = await generateToken(false, { scope: 'openid' });
 
     expect.assertions(1);
     try {
-      await fief.validateAcessToken(accessToken, ['REQUIRED']);
+      await fief.validateAcessToken(newAccessToken, ['REQUIRED']);
     } catch (err) {
       expect(err).toBeInstanceOf(FiefAccessTokenMissingScope);
     }
   });
 
   it('should validate token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid offline_access' });
+    const newAccessToken = await generateToken(false, { scope: 'openid offline_access' });
 
-    const info = await fief.validateAcessToken(accessToken, ['openid', 'offline_access']);
+    const info = await fief.validateAcessToken(newAccessToken, ['openid', 'offline_access']);
     expect(info).toStrictEqual({
       id: userId,
       scope: ['openid', 'offline_access'],
