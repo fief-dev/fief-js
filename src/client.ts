@@ -269,9 +269,8 @@ export class Fief {
     } catch (err) {
       if (err instanceof jose.errors.JOSEError) {
         throw new FiefIdTokenInvalid();
-      } else {
-        throw err;
       }
+      throw err;
     }
   }
 }
