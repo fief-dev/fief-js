@@ -1,6 +1,6 @@
 {
   "name": "@fief/fief",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Fief client for JavaScript",
   "main": "build/cjs/index.cjs.js",
   "module": "build/esm/index.esm.js",
