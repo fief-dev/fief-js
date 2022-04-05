@@ -1,8 +1,5 @@
 import { Fief, FiefTokenResponse } from '../client';
 
-export const USERINFO_STORAGE_KEY = 'fief-userinfo';
-export const TOKEN_INFO_STORAGE_KEY = 'fief-tokeninfo';
-
 export interface IFiefAuthStorage {
   getUserinfo(): Record<string, any> | null;
   setUserinfo(userinfo: Record<string, any>): void;
@@ -13,12 +10,16 @@ export interface IFiefAuthStorage {
 class FiefAuthStorage implements IFiefAuthStorage {
   private storage: Storage;
 
+  private static readonly USERINFO_STORAGE_KEY = 'fief-userinfo';
+
+  private static readonly TOKEN_INFO_STORAGE_KEY = 'fief-tokeninfo';
+
   constructor() {
     this.storage = window.sessionStorage;
   }
 
   public getUserinfo(): Record<string, any> | null {
-    const value = this.storage.getItem(USERINFO_STORAGE_KEY);
+    const value = this.storage.getItem(FiefAuthStorage.USERINFO_STORAGE_KEY);
     if (!value) {
       return null;
     }
@@ -26,11 +27,11 @@ class FiefAuthStorage implements IFiefAuthStorage {
   }
 
   public setUserinfo(userinfo: Record<string, any>): void {
-    this.storage.setItem(USERINFO_STORAGE_KEY, JSON.stringify(userinfo));
+    this.storage.setItem(FiefAuthStorage.USERINFO_STORAGE_KEY, JSON.stringify(userinfo));
   }
 
   public getTokenInfo(): FiefTokenResponse | null {
-    const value = this.storage.getItem(TOKEN_INFO_STORAGE_KEY);
+    const value = this.storage.getItem(FiefAuthStorage.TOKEN_INFO_STORAGE_KEY);
     if (!value) {
       return null;
     }
@@ -38,11 +39,11 @@ class FiefAuthStorage implements IFiefAuthStorage {
   }
 
   public setTokenInfo(tokenInfo: FiefTokenResponse): void {
-    this.storage.setItem(TOKEN_INFO_STORAGE_KEY, JSON.stringify(tokenInfo));
+    this.storage.setItem(FiefAuthStorage.TOKEN_INFO_STORAGE_KEY, JSON.stringify(tokenInfo));
   }
 }
 
-export class FiefAuthError extends Error {}
+export class FiefAuthError extends Error { }
 
 export class FiefAuthAuthorizeError extends FiefAuthError {
   public error: string;
@@ -56,7 +57,7 @@ export class FiefAuthAuthorizeError extends FiefAuthError {
   }
 }
 
-export class FiefAuthNotAuthenticatedError extends FiefAuthError {}
+export class FiefAuthNotAuthenticatedError extends FiefAuthError { }
 
 export class FiefAuth {
   private client: Fief;

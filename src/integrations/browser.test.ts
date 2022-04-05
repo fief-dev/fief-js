@@ -5,8 +5,6 @@ import 'jest-location-mock';
 
 import type { Fief, FiefTokenResponse } from '../client';
 import {
-  TOKEN_INFO_STORAGE_KEY,
-  USERINFO_STORAGE_KEY,
   FiefAuth,
   FiefAuthAuthorizeError,
   IFiefAuthStorage,
@@ -16,12 +14,16 @@ import {
 class MockAuthStorage implements IFiefAuthStorage {
   private storage: Record<string, string>;
 
+  private static readonly USERINFO_STORAGE_KEY = 'fief-userinfo';
+
+  private static readonly TOKEN_INFO_STORAGE_KEY = 'fief-tokeninfo';
+
   constructor() {
     this.storage = {};
   }
 
   public getUserinfo(): Record<string, any> | null {
-    const value = this.storage[USERINFO_STORAGE_KEY];
+    const value = this.storage[MockAuthStorage.USERINFO_STORAGE_KEY];
     if (!value) {
       return null;
     }
@@ -29,11 +31,11 @@ class MockAuthStorage implements IFiefAuthStorage {
   }
 
   public setUserinfo(userinfo: Record<string, any>): void {
-    this.storage[USERINFO_STORAGE_KEY] = JSON.stringify(userinfo);
+    this.storage[MockAuthStorage.USERINFO_STORAGE_KEY] = JSON.stringify(userinfo);
   }
 
   public getTokenInfo(): FiefTokenResponse | null {
-    const value = this.storage[TOKEN_INFO_STORAGE_KEY];
+    const value = this.storage[MockAuthStorage.TOKEN_INFO_STORAGE_KEY];
     if (!value) {
       return null;
     }
@@ -41,7 +43,7 @@ class MockAuthStorage implements IFiefAuthStorage {
   }
 
   public setTokenInfo(tokenInfo: FiefTokenResponse): void {
-    this.storage[TOKEN_INFO_STORAGE_KEY] = JSON.stringify(tokenInfo);
+    this.storage[MockAuthStorage.TOKEN_INFO_STORAGE_KEY] = JSON.stringify(tokenInfo);
   }
 
   public clear(): void {
