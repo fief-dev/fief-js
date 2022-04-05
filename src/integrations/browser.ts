@@ -56,6 +56,8 @@ export class FiefAuthAuthorizeError extends FiefAuthError {
   }
 }
 
+export class FiefAuthNotAuthenticatedError extends FiefAuthError {}
+
 export class FiefAuth {
   private client: Fief;
 
@@ -103,5 +105,15 @@ export class FiefAuth {
 
     this.storage.setTokenInfo(tokenResponse);
     this.storage.setUserinfo(userinfo);
+  }
+
+  public async refreshUserinfo(): Promise<Record<string, any>> {
+    const tokenInfo = this.getTokenInfo();
+    if (tokenInfo === null) {
+      throw new FiefAuthNotAuthenticatedError();
+    }
+    const userinfo = await this.client.userinfo(tokenInfo.access_token);
+    this.storage.setUserinfo(userinfo);
+    return userinfo;
   }
 }

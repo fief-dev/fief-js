@@ -10,6 +10,7 @@ import {
   FiefAuth,
   FiefAuthAuthorizeError,
   IFiefAuthStorage,
+  FiefAuthNotAuthenticatedError,
 } from './browser';
 
 class MockAuthStorage implements IFiefAuthStorage {
@@ -58,6 +59,7 @@ const tokenInfo: FiefTokenResponse = {
 const fiefMock = jest.fn<Fief, any>(() => ({
   getAuthURL: () => 'https://bretagne.fief.dev/authorize',
   authCallback: () => [tokenInfo, { sub: 'USER_ID' }],
+  userinfo: () => ({ sub: 'REFRESHED_USER_ID' }),
 }));
 const mockAuthStorage = new MockAuthStorage();
 const fiefAuth = new FiefAuth(fiefMock(), mockAuthStorage);
@@ -89,11 +91,11 @@ describe('getUserinfo', () => {
 });
 
 describe('getTokenInfo', () => {
-  it('should return null if no access token in storage', () => {
+  it('should return null if no token info in storage', () => {
     expect(fiefAuth.getTokenInfo()).toBeNull();
   });
 
-  it('should return access token if in storage', () => {
+  it('should return token info if in storage', () => {
     mockAuthStorage.setTokenInfo(tokenInfo);
     expect(fiefAuth.getTokenInfo()).toStrictEqual(tokenInfo);
   });
@@ -140,5 +142,26 @@ describe('authCallback', () => {
 
     expect(mockAuthStorage.getTokenInfo()).toStrictEqual(tokenInfo);
     expect(mockAuthStorage.getUserinfo()).toStrictEqual({ sub: 'USER_ID' });
+  });
+});
+
+describe('refreshUserinfo', () => {
+  it('should throw an error if no token info', async () => {
+    expect.assertions(1);
+    try {
+      await fiefAuth.refreshUserinfo();
+    } catch (err) {
+      expect(err).toBeInstanceOf(FiefAuthNotAuthenticatedError);
+    }
+  });
+
+  it('should return fresh userinfo and set it in storage', async () => {
+    mockAuthStorage.setTokenInfo(tokenInfo);
+
+    const refreshedUserinfo = await fiefAuth.refreshUserinfo();
+    expect(refreshedUserinfo).toStrictEqual({ sub: 'REFRESHED_USER_ID' });
+
+    const userinfo = await fiefAuth.getUserinfo();
+    expect(userinfo).toStrictEqual({ sub: 'REFRESHED_USER_ID' });
   });
 });
