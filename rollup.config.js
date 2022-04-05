@@ -2,6 +2,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
+import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
 
 import pkg from './package.json';
@@ -22,18 +23,38 @@ export default [
       commonjs(),
       typescript(),
       terser(),
+      copy({
+        targets: [
+          { src: 'src/index.html', dest: 'build' },
+        ],
+      }),
     ],
   },
   // CommonJS (for Node) and ES module (for bundlers) build.
   {
-    input: 'src/index.ts',
+    input: [
+      'src/index.ts',
+      'src/react/index.ts',
+    ],
     external: ['ms'],
     plugins: [
       typescript(),
     ],
     output: [
-      { file: pkg.main, format: 'cjs', sourcemap: true },
-      { file: pkg.module, format: 'es', sourcemap: true },
+      {
+        dir: 'build/cjs',
+        format: 'cjs',
+        sourcemap: true,
+        preserveModules: true,
+        preserveModulesRoot: 'src',
+      },
+      {
+        dir: 'build/esm',
+        format: 'es',
+        sourcemap: true,
+        preserveModules: true,
+        preserveModulesRoot: 'src',
+      },
     ],
   },
 ];

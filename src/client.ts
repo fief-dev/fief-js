@@ -23,7 +23,7 @@ export class FiefAccessTokenExpired extends FiefError { }
 export class FiefAccessTokenMissingScope extends FiefError { }
 export class FiefIdTokenInvalid extends FiefError { }
 
-interface FiefParameters {
+export interface FiefParameters {
   baseURL: string;
   clientId: string;
   clientSecret?: string;

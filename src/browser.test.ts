@@ -3,7 +3,7 @@
  */
 import 'jest-location-mock';
 
-import type { Fief, FiefTokenResponse } from '../client';
+import type { Fief, FiefTokenResponse } from './client';
 import {
   FiefAuth,
   FiefAuthAuthorizeError,

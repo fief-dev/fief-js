@@ -2,11 +2,11 @@
   "name": "fief",
   "version": "0.0.0",
   "description": "Fief client for JavaScript",
-  "main": "build/index.cjs.js",
-  "module": "build/index.esm.js",
+  "main": "build/cjs/index.cjs.js",
+  "module": "build/esm/index.esm.js",
   "browser": "build/index.umd.js",
   "scripts": {
-    "build": "rollup -c",
+    "build": "rm -rf build/ && rollup -c",
     "lint": "eslint src/**",
     "test": "jest",
     "test-watch": "jest --watch"
@@ -32,6 +32,7 @@
     "@types/jest": "^27.4.1",
     "@types/qs": "^6.9.7",
     "@types/ramda": "^0.28.7",
+    "@types/react": "^17.0.43",
     "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^5.18.0",
     "@typescript-eslint/parser": "^5.18.0",
@@ -44,6 +45,7 @@
     "jest-location-mock": "^1.0.9",
     "ramda": "^0.28.0",
     "rollup": "^2.70.1",
+    "rollup-plugin-copy": "^3.4.0",
     "rollup-plugin-terser": "^7.0.2",
     "typescript": "^4.6.3",
     "uuid": "^8.3.2"
@@ -52,5 +54,13 @@
     "axios": "^0.26.1",
     "jose": "^4.6.0",
     "qs": "^6.10.3"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }

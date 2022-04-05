@@ -1,4 +1,4 @@
-import { Fief, FiefTokenResponse } from '../client';
+import { Fief, FiefTokenResponse } from './client';
 
 export interface IFiefAuthStorage {
   getUserinfo(): Record<string, any> | null;
