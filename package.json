@@ -1,0 +1,47 @@
+{
+  "name": "fief",
+  "version": "0.0.0",
+  "description": "Fief client for JavaScript",
+  "main": "build/index.cjs.js",
+  "module": "build/index.esm.js",
+  "browser": "build/index.umd.js",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "jest",
+    "test-watch": "jest --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fief-dev/fief-js.git"
+  },
+  "author": "François Voron",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fief-dev/fief-js/issues"
+  },
+  "homepage": "https://github.com/fief-dev/fief-js#readme",
+  "devDependencies": {
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@rollup/plugin-commonjs": "^21.0.3",
+    "@rollup/plugin-html": "^0.2.4",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.1.3",
+    "@rollup/plugin-typescript": "^8.3.1",
+    "@types/jest": "^27.4.1",
+    "@types/qs": "^6.9.7",
+    "@types/ramda": "^0.28.7",
+    "@types/uuid": "^8.3.4",
+    "axios-mock-adapter": "^1.20.0",
+    "jest": "^27.5.1",
+    "ramda": "^0.28.0",
+    "rollup": "^2.70.1",
+    "typescript": "^4.6.3",
+    "uuid": "^8.3.2"
+  },
+  "dependencies": {
+    "axios": "^0.26.1",
+    "jose": "^4.6.0",
+    "qs": "^6.10.3"
+  }
+}
