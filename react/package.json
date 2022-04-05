@@ -1,7 +1,7 @@
 {
   "name": "@fief/fief/react",
   "private": true,
-  "main": "../build/cjs/react.js",
-  "module": "../build/esm/react.js",
-  "types": "../build/esm/react.d.ts"
+  "main": "../build/cjs/react/index.js",
+  "module": "../build/esm/react/index.js",
+  "types": "../build/esm/react/index.d.ts"
 }
