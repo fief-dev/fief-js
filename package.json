@@ -7,7 +7,7 @@
   "browser": "build/index.umd.js",
   "scripts": {
     "build": "rm -rf build/ && rollup -c",
-    "lint": "eslint src/**",
+    "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",
     "test-watch": "jest --watch"
   },
