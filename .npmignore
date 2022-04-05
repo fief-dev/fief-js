@@ -1,0 +1,8 @@
+.github/
+src/
+tests/
+.editorconfig
+.eslintrc.json
+babel.config.js
+rollup.config.js
+tsconfig.json

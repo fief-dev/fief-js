@@ -1,5 +1,5 @@
 {
-  "name": "fief",
+  "name": "@fief/fief",
   "version": "0.0.0",
   "description": "Fief client for JavaScript",
   "main": "build/cjs/index.cjs.js",
@@ -9,7 +9,8 @@
     "build": "rm -rf build/ && rollup -c",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",
-    "test-watch": "jest --watch"
+    "test-watch": "jest --watch",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
