@@ -1,22 +1,54 @@
-let subtle: SubtleCrypto;
+/* eslint-disable no-restricted-globals */
+import { Base64 } from 'js-base64';
 
-if (typeof window === 'undefined') {
-  // eslint-disable-next-line global-require
-  const { webcrypto } = require('crypto');
-  subtle = webcrypto.subtle;
-} else {
-  subtle = window.crypto.subtle;
-}
+const getCrypto = (): Crypto => {
+  let crypto: Crypto | undefined;
+
+  // Native crypto from window (Browser)
+  if (typeof window !== 'undefined' && window.crypto) {
+    crypto = window.crypto;
+  }
+
+  // Native crypto in web worker (Browser)
+  if (typeof self !== 'undefined' && self.crypto) {
+    crypto = self.crypto;
+  }
+
+  // Native crypto from worker
+  if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+    crypto = globalThis.crypto;
+  }
+
+  // Native crypto from global (NodeJS)
+  if (!crypto && typeof global !== 'undefined' && global.crypto) {
+    crypto = global.crypto;
+  }
+
+  // Native crypto import via require (NodeJS)
+  if (!crypto && typeof require === 'function') {
+    try {
+      // eslint-disable-next-line global-require
+      crypto = require('crypto');
+    // eslint-disable-next-line no-empty
+    } catch { }
+  }
+
+  if (crypto === undefined) {
+    throw new Error('Can\'t initialize the Crypto module');
+  }
+
+  return crypto;
+};
 
 export const getValidationHash = async (value: string): Promise<string> => {
+  const crypto = getCrypto();
   const msgBuffer = new TextEncoder().encode(value);
-  const hashBuffer = await subtle.digest('SHA-256', msgBuffer);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
 
   const halfHash = hashBuffer.slice(0, hashBuffer.byteLength / 2);
-  const base64Hash = btoa(String.fromCharCode(...new Uint8Array(halfHash)));
+  const base64Hash = Base64.fromUint8Array(new Uint8Array(halfHash), true);
 
-  // Remove the Base64 padding "==" at the end
-  return base64Hash.slice(0, base64Hash.length - 2);
+  return base64Hash;
 };
 
 export const isValidHash = async (value: string, hash: string): Promise<boolean> => {

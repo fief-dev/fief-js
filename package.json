@@ -55,6 +55,7 @@
   "dependencies": {
     "axios": "^0.26.1",
     "jose": "^4.6.0",
+    "js-base64": "^3.7.2",
     "qs": "^6.10.3"
   },
   "peerDependencies": {
