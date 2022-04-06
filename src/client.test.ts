@@ -144,8 +144,8 @@ describe('authCallback', () => {
   });
 
   it('should validate correct at_hash and c_hash claims', async () => {
-    const codeValidationHash = getValidationHash('CODE');
-    const accessTokenValidationHash = getValidationHash('ACCESS_TOKEN');
+    const codeValidationHash = await getValidationHash('CODE');
+    const accessTokenValidationHash = await getValidationHash('ACCESS_TOKEN');
 
     const idToken = await generateToken(
       false,
@@ -169,8 +169,8 @@ describe('authCallback', () => {
   });
 
   it('should reject invalid at_hash and c_hash claims', async () => {
-    const codeValidationHash = getValidationHash('INVALID_CODE');
-    const accessTokenValidationHash = getValidationHash('INVALID_ACCESS_TOKEN');
+    const codeValidationHash = await getValidationHash('INVALID_CODE');
+    const accessTokenValidationHash = await getValidationHash('INVALID_ACCESS_TOKEN');
 
     const idToken = await generateToken(
       false,
