@@ -5,7 +5,6 @@
     "strict": true,
     "jsx": "react-jsx",
     "resolveJsonModule": true,
-    "rootDir": "src",
     "target": "ES6",
     "noImplicitAny": true,
     "removeComments": true,

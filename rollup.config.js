@@ -38,7 +38,7 @@ export default [
     ],
     external: ['ms'],
     plugins: [
-      typescript({ declaration: false }),
+      typescript({ declaration: false, rootDir: 'src' }),
     ],
     output: [
       {
@@ -61,6 +61,7 @@ export default [
       typescript({
         declaration: true,
         declarationDir: 'build/esm',
+        rootDir: 'src',
       }),
     ],
     output: [

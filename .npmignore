@@ -1,5 +1,4 @@
 .github/
-src/
 tests/
 .editorconfig
 .eslintrc.json

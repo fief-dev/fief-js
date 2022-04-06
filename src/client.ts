@@ -254,13 +254,13 @@ export class Fief {
       const { payload: claims } = await jose.jwtVerify(signedToken, signatureKeys);
 
       if (claims.c_hash !== undefined) {
-        if (!code || !(await isValidHash(code, claims.c_hash as string))) {
+        if (!code || !isValidHash(code, claims.c_hash as string)) {
           throw new FiefIdTokenInvalid();
         }
       }
 
       if (claims.at_hash !== undefined) {
-        if (!accessToken || !(await isValidHash(accessToken, claims.at_hash as string))) {
+        if (!accessToken || !isValidHash(accessToken, claims.at_hash as string)) {
           throw new FiefIdTokenInvalid();
         }
       }
