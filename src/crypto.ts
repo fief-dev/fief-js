@@ -7,21 +7,25 @@ const getCrypto = (): Crypto => {
   // Native crypto from window (Browser)
   if (typeof window !== 'undefined' && window.crypto) {
     crypto = window.crypto;
+    console.log('From window');
   }
 
   // Native crypto in web worker (Browser)
   if (typeof self !== 'undefined' && self.crypto) {
     crypto = self.crypto;
+    console.log('From web worker');
   }
 
   // Native crypto from worker
   if (typeof globalThis !== 'undefined' && globalThis.crypto) {
     crypto = globalThis.crypto;
+    console.log('From worker');
   }
 
   // Native crypto from global (NodeJS)
   if (!crypto && typeof global !== 'undefined' && global.crypto) {
     crypto = global.crypto;
+    console.log('From global Node');
   }
 
   // Native crypto import via require (NodeJS)
@@ -29,7 +33,8 @@ const getCrypto = (): Crypto => {
     try {
       // eslint-disable-next-line global-require
       crypto = require('crypto');
-    // eslint-disable-next-line no-empty
+      console.log('From require');
+      // eslint-disable-next-line no-empty
     } catch { }
   }
 
