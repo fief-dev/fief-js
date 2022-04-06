@@ -11,12 +11,17 @@ import {
   FiefAuthNotAuthenticatedError,
 } from './browser';
 
+// Make sure TextEncoder is available in JSDom
+global.TextEncoder = require('util').TextEncoder;
+
 class MockAuthStorage implements IFiefAuthStorage {
   private storage: Record<string, string>;
 
   private static readonly USERINFO_STORAGE_KEY = 'fief-userinfo';
 
   private static readonly TOKEN_INFO_STORAGE_KEY = 'fief-tokeninfo';
+
+  private static readonly CODE_VERIFIER_STORAGE_KEY = 'fief-codeverifier';
 
   constructor() {
     this.storage = {};
@@ -46,6 +51,22 @@ class MockAuthStorage implements IFiefAuthStorage {
     this.storage[MockAuthStorage.TOKEN_INFO_STORAGE_KEY] = JSON.stringify(tokenInfo);
   }
 
+  public getCodeVerifier(): string | null {
+    const value = this.storage[MockAuthStorage.CODE_VERIFIER_STORAGE_KEY];
+    if (!value) {
+      return null;
+    }
+    return value;
+  }
+
+  public setCodeVerifier(code: string): void {
+    this.storage[MockAuthStorage.CODE_VERIFIER_STORAGE_KEY] = code;
+  }
+
+  public clearCodeVerifier(): void {
+    delete this.storage[MockAuthStorage.CODE_VERIFIER_STORAGE_KEY];
+  }
+
   public clear(): void {
     this.storage = {};
   }
@@ -57,10 +78,11 @@ const tokenInfo: FiefTokenResponse = {
   id_token: 'ID_TOKEN',
   token_type: 'bearer',
 };
+const authCallbackMock = jest.fn(() => [tokenInfo, { sub: 'USER_ID' }]);
 // @ts-ignore
 const fiefMock = jest.fn<Fief, any>(() => ({
   getAuthURL: () => 'https://bretagne.fief.dev/authorize',
-  authCallback: () => [tokenInfo, { sub: 'USER_ID' }],
+  authCallback: authCallbackMock,
   userinfo: () => ({ sub: 'REFRESHED_USER_ID' }),
 }));
 const mockAuthStorage = new MockAuthStorage();
@@ -68,6 +90,7 @@ const fiefAuth = new FiefAuth(fiefMock(), mockAuthStorage);
 
 beforeEach(() => {
   mockAuthStorage.clear();
+  authCallbackMock.mockClear();
 });
 
 describe('isAuthenticated', () => {
@@ -144,6 +167,17 @@ describe('authCallback', () => {
 
     expect(mockAuthStorage.getTokenInfo()).toStrictEqual(tokenInfo);
     expect(mockAuthStorage.getUserinfo()).toStrictEqual({ sub: 'USER_ID' });
+  });
+
+  it('should put code_verifier in payload if present in storage and clear it afterwards', async () => {
+    window.location.search = 'code=CODE';
+    mockAuthStorage.setCodeVerifier('CODE_VERIFIER');
+
+    await fiefAuth.authCallback('https://www.bretagne.duchy/callback');
+
+    expect(authCallbackMock).toHaveBeenCalledWith('CODE', 'https://www.bretagne.duchy/callback', 'CODE_VERIFIER');
+
+    expect(mockAuthStorage.getCodeVerifier()).toBeNull();
   });
 });
 
