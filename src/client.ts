@@ -71,6 +71,8 @@ export class Fief {
     redirectURI: string;
     state?: string;
     scope?: string[];
+    codeChallenge?: string,
+    codeChallengeMethod?: 'plain' | 'S256',
     extrasParams?: Record<string, string>;
   }): Promise<string> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
@@ -79,6 +81,8 @@ export class Fief {
       redirectURI,
       state,
       scope,
+      codeChallenge,
+      codeChallengeMethod,
       extrasParams,
     } = parameters;
 
@@ -86,6 +90,9 @@ export class Fief {
       response_type: 'code',
       client_id: this.clientId,
       redirect_uri: redirectURI,
+      ...state ? { state } : {},
+      ...codeChallenge ? { code_challenge: codeChallenge } : {},
+      ...codeChallengeMethod ? { code_challenge_method: codeChallengeMethod } : {},
       ...state ? { state } : {},
       ...scope ? { scope: scope.join(' ') } : {},
       ...extrasParams ? { ...extrasParams } : {},
@@ -98,6 +105,7 @@ export class Fief {
   public async authCallback(
     code: string,
     redirectURI: string,
+    codeVerifier?: string,
   ): Promise<[FiefTokenResponse, Record<string, any>]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
     const payload = qs.stringify({
@@ -105,6 +113,7 @@ export class Fief {
       client_id: this.clientId,
       code,
       redirect_uri: redirectURI,
+      ...codeVerifier ? { code_verifier: codeVerifier } : {},
     });
 
     const { data } = await this.client.post<FiefTokenResponse>(

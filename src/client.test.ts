@@ -62,6 +62,7 @@ describe('getAuthURL', () => {
       [{}, ''],
       [{ state: 'STATE' }, '&state=STATE'],
       [{ scope: ['SCOPE_1', 'SCOPE_2'] }, '&scope=SCOPE_1+SCOPE_2'],
+      [{ codeChallenge: 'CODE', codeChallengeMethod: 'S256' as 'S256' }, '&code_challenge=CODE&code_challenge_method=S256'],
       [{ extrasParams: { foo: 'bar' } }, '&foo=bar'],
     ],
   )('should generate URL with params %o', (parameters, expectedParameters) => fief.getAuthURL({
