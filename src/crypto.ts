@@ -57,3 +57,26 @@ export const isValidHash = async (value: string, hash: string): Promise<boolean>
   const valueHash = await getValidationHash(value);
   return valueHash === hash;
 };
+
+export const generateCodeVerifier = async (): Promise<string> => {
+  const crypto = getCrypto();
+  const randomArray = new Uint8Array(96);
+  crypto.getRandomValues(randomArray);
+  return Base64.fromUint8Array(randomArray, true);
+};
+
+export const getCodeChallenge = async (code: string, method: 'plain' | 'S256'): Promise<string> => {
+  if (method === 'plain') {
+    return code;
+  }
+
+  if (method === 'S256') {
+    const crypto = getCrypto();
+    const msgBuffer = new TextEncoder().encode(code);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const base64Hash = Base64.fromUint8Array(new Uint8Array(hashBuffer), true);
+    return base64Hash;
+  }
+
+  throw new Error(`Invalid method "${method}". Allowed methods are: plain, S256`);
+};
