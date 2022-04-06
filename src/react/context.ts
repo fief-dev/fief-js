@@ -1,12 +1,11 @@
 import { createContext } from 'react';
 
 import type { FiefAuth } from '../browser';
+import { FiefAuthState } from './storage';
 
 const stub = (): never => {
   throw new Error('You forgot to wrap your component in <FiefProvider>.');
 };
 
 // @ts-ignore
-const FiefAuthContext = createContext<FiefAuth>(stub);
-
-export default FiefAuthContext;
+export const FiefAuthContext = createContext<{ auth: FiefAuth, state: FiefAuthState }>(stub);

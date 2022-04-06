@@ -1,14 +1,24 @@
 import { useContext } from 'react';
 
 import type { FiefAuth } from '../browser';
-import FiefAuthContext from './context';
+import { FiefAuthContext } from './context';
 
 export const useFiefAuth = (): FiefAuth => {
-  const fiefAuth = useContext(FiefAuthContext);
-  return fiefAuth;
+  const { auth } = useContext(FiefAuthContext);
+  return auth;
+};
+
+export const useFiefUserinfo = (): Record<string, any> | null => {
+  const { state } = useContext(FiefAuthContext);
+  return state.userinfo;
+};
+
+export const useFiefTokenInfo = (): Record<string, any> | null => {
+  const { state } = useContext(FiefAuthContext);
+  return state.tokenInfo;
 };
 
 export const useFiefIsAuthenticated = (): boolean => {
-  const fiefAuth = useFiefAuth();
-  return fiefAuth.isAuthenticated();
+  const userinfo = useFiefUserinfo();
+  return userinfo !== null;
 };
