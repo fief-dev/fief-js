@@ -127,9 +127,10 @@ describe('getTokenInfo', () => {
 });
 
 describe('redirectToLogin', () => {
-  it('should redirect to the authorization URL', async () => {
+  it('should redirect to the authorization URL and store code verifier in storage', async () => {
     await fiefAuth.redirectToLogin('https://www.bretagne.duchy/callback');
     expect(window.location).toBeAt('https://bretagne.fief.dev/authorize');
+    expect(mockAuthStorage.getCodeVerifier()).not.toBeNull();
   });
 });
 

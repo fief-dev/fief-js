@@ -110,6 +110,8 @@ export class FiefAuth {
   public async redirectToLogin(redirectURI: string): Promise<void> {
     const codeVerifier = await generateCodeVerifier();
     const codeChallenge = await getCodeChallenge(codeVerifier, 'S256');
+    this.storage.setCodeVerifier(codeVerifier);
+
     const authorizeURL = await this.client.getAuthURL({
       redirectURI,
       scope: ['openid'],
