@@ -6,3 +6,5 @@ export {
   FiefError,
   FiefIdTokenInvalid,
 } from './client';
+
+export * as browser from './browser';
