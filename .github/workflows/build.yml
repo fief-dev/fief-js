@@ -22,7 +22,12 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run lint
-    - run: npm test
+    - name: 'Run unit tests and upload coverage'
+      run: |
+        npm test
+        npm run codecov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
   release:
