@@ -22,13 +22,13 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run lint
-    - name: 'Run unit tests and upload coverage'
-      run: |
-        npm test
-        npm run codecov
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
+    - name: Run unit tests
+      run: npm test
+    - uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
+        verbose: true
 
   release:
     runs-on: ubuntu-latest
