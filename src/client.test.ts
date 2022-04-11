@@ -41,8 +41,8 @@ beforeAll(async () => {
   axiosMock.onGet('/.well-known/openid-configuration').reply(
     200,
     {
-      authorization_endpoint: `${HOSTNAME}/auth/authorize`,
-      token_endpoint: `${HOSTNAME}/auth/token`,
+      authorization_endpoint: `${HOSTNAME}/authorize`,
+      token_endpoint: `${HOSTNAME}/token`,
       userinfo_endpoint: `${HOSTNAME}/userinfo`,
       jwks_uri: `${HOSTNAME}/.well-known/jwks.json`,
     },
@@ -69,13 +69,13 @@ describe('getAuthURL', () => {
     redirectURI: 'https://www.bretagne.duchy/callback',
     ...parameters,
   }).then((result) => {
-    expect(result).toBe(`https://bretagne.fief.dev/auth/authorize?response_type=code&client_id=CLIENT_ID&redirect_uri=https%3A%2F%2Fwww.bretagne.duchy%2Fcallback${expectedParameters}`);
+    expect(result).toBe(`https://bretagne.fief.dev/authorize?response_type=code&client_id=CLIENT_ID&redirect_uri=https%3A%2F%2Fwww.bretagne.duchy%2Fcallback${expectedParameters}`);
   }));
 });
 
 describe('authCallback', () => {
   it('should validate and decode signed ID token', async () => {
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: accessToken,
@@ -92,7 +92,7 @@ describe('authCallback', () => {
   });
 
   it('should validate and decode encrypted ID token', async () => {
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: accessToken,
@@ -109,7 +109,7 @@ describe('authCallback', () => {
   });
 
   it('should reject invalid ID token', async () => {
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: accessToken,
@@ -127,7 +127,7 @@ describe('authCallback', () => {
   });
 
   it('should reject encrypted ID token without encryption key', async () => {
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: accessToken,
@@ -153,7 +153,7 @@ describe('authCallback', () => {
       { c_hash: codeValidationHash, at_hash: accessTokenValidationHash },
     );
 
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: 'ACCESS_TOKEN',
@@ -178,7 +178,7 @@ describe('authCallback', () => {
       { c_hash: codeValidationHash, at_hash: accessTokenValidationHash },
     );
 
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: 'ACCESS_TOKEN',
@@ -198,7 +198,7 @@ describe('authCallback', () => {
 
 describe('authRefreshToken', () => {
   it('should validate and decode signed ID token', async () => {
-    axiosMock.onPost('/auth/token').reply(
+    axiosMock.onPost('/token').reply(
       200,
       {
         access_token: accessToken,
@@ -274,5 +274,12 @@ describe('userinfo', () => {
 
     const userinfo = await fief.userinfo('ACCESS_TOKEN');
     expect(userinfo).toStrictEqual({ sub: userId });
+  });
+});
+
+describe('getLogoutURL', () => {
+  it('should generate URL with redirect_uri parameter', async () => {
+    const logoutURL = await fief.getLogoutURL({ redirectURI: 'https://www.bretagne.duchy' });
+    expect(logoutURL).toBe('https://bretagne.fief.dev/logout?redirect_uri=https%3A%2F%2Fwww.bretagne.duchy');
   });
 });

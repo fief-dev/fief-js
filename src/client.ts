@@ -220,6 +220,13 @@ export class Fief {
     return data;
   }
 
+  public async getLogoutURL(parameters: { redirectURI: string }): Promise<string> {
+    const params = new URLSearchParams({
+      redirect_uri: parameters.redirectURI,
+    });
+    return `${this.baseURL}/logout?${params.toString()}`;
+  }
+
   private async getOpenIDConfiguration(): Promise<Record<string, any>> {
     if (this.openIDConfiguration !== undefined) {
       return this.openIDConfiguration;
