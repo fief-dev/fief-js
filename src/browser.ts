@@ -4,8 +4,10 @@ import { generateCodeVerifier, getCodeChallenge } from './crypto';
 export interface IFiefAuthStorage {
   getUserinfo(): Record<string, any> | null;
   setUserinfo(userinfo: Record<string, any>): void;
+  clearUserinfo(): void;
   getTokenInfo(): FiefTokenResponse | null;
   setTokenInfo(tokenInfo: FiefTokenResponse): void;
+  clearTokeninfo(): void;
   getCodeVerifier(): string | null;
   setCodeVerifier(code: string): void;
   clearCodeVerifier(): void;
@@ -36,6 +38,10 @@ class FiefAuthStorage implements IFiefAuthStorage {
     this.storage.setItem(FiefAuthStorage.USERINFO_STORAGE_KEY, JSON.stringify(userinfo));
   }
 
+  public clearUserinfo(): void {
+    this.storage.removeItem(FiefAuthStorage.USERINFO_STORAGE_KEY);
+  }
+
   public getTokenInfo(): FiefTokenResponse | null {
     const value = this.storage.getItem(FiefAuthStorage.TOKEN_INFO_STORAGE_KEY);
     if (!value) {
@@ -46,6 +52,10 @@ class FiefAuthStorage implements IFiefAuthStorage {
 
   public setTokenInfo(tokenInfo: FiefTokenResponse): void {
     this.storage.setItem(FiefAuthStorage.TOKEN_INFO_STORAGE_KEY, JSON.stringify(tokenInfo));
+  }
+
+  public clearTokeninfo(): void {
+    this.storage.removeItem(FiefAuthStorage.TOKEN_INFO_STORAGE_KEY);
   }
 
   public getCodeVerifier(): string | null {
@@ -154,5 +164,13 @@ export class FiefAuth {
     const userinfo = await this.client.userinfo(tokenInfo.access_token);
     this.storage.setUserinfo(userinfo);
     return userinfo;
+  }
+
+  public async logout(redirectURI: string): Promise<void> {
+    this.storage.clearUserinfo();
+    this.storage.clearTokeninfo();
+
+    const logoutURL = await this.client.getLogoutURL({ redirectURI });
+    window.location.href = logoutURL;
   }
 }

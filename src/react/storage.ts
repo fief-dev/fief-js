@@ -11,7 +11,11 @@ export interface FiefAuthState {
 
 interface SetUserInfoAuthReducerAction {
   type: 'setUserinfo';
-  value: Record<string, any>
+  value: Record<string, any>;
+}
+
+interface ClearUserInfoAuthReducerAction {
+  type: 'clearUserinfo';
 }
 
 interface SetTokenInfoAuthReducerAction {
@@ -19,17 +23,27 @@ interface SetTokenInfoAuthReducerAction {
   value: FiefTokenResponse;
 }
 
+interface ClearTokenInfoAuthReducerAction {
+  type: 'clearTokenInfo';
+}
+
 type AuthReducerAction = (
   SetUserInfoAuthReducerAction |
-  SetTokenInfoAuthReducerAction
+  ClearUserInfoAuthReducerAction |
+  SetTokenInfoAuthReducerAction |
+  ClearTokenInfoAuthReducerAction
 );
 
 const reducer = (state: FiefAuthState, action: AuthReducerAction): FiefAuthState => {
   switch (action.type) {
     case 'setUserinfo':
       return { ...state, userinfo: action.value };
+    case 'clearUserinfo':
+      return { ...state, userinfo: null };
     case 'setTokenInfo':
       return { ...state, tokenInfo: action.value };
+    case 'clearTokenInfo':
+      return { ...state, tokenInfo: null };
     default:
       throw new Error();
   }
@@ -60,12 +74,20 @@ export class FiefReactAuthStorage implements IFiefAuthStorage {
     this.dispatch({ type: 'setUserinfo', value: userinfo });
   }
 
+  public clearUserinfo(): void {
+    this.dispatch({ type: 'clearUserinfo' });
+  }
+
   public getTokenInfo(): FiefTokenResponse | null {
     return this.state.tokenInfo || null;
   }
 
   public setTokenInfo(tokenInfo: FiefTokenResponse): void {
     this.dispatch({ type: 'setTokenInfo', value: tokenInfo });
+  }
+
+  public clearTokeninfo(): void {
+    this.dispatch({ type: 'clearTokenInfo' });
   }
 
   public getCodeVerifier(): string | null {

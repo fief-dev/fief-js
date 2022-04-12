@@ -39,6 +39,10 @@ class MockAuthStorage implements IFiefAuthStorage {
     this.storage[MockAuthStorage.USERINFO_STORAGE_KEY] = JSON.stringify(userinfo);
   }
 
+  public clearUserinfo(): void {
+    delete this.storage[MockAuthStorage.USERINFO_STORAGE_KEY];
+  }
+
   public getTokenInfo(): FiefTokenResponse | null {
     const value = this.storage[MockAuthStorage.TOKEN_INFO_STORAGE_KEY];
     if (!value) {
@@ -49,6 +53,10 @@ class MockAuthStorage implements IFiefAuthStorage {
 
   public setTokenInfo(tokenInfo: FiefTokenResponse): void {
     this.storage[MockAuthStorage.TOKEN_INFO_STORAGE_KEY] = JSON.stringify(tokenInfo);
+  }
+
+  public clearTokeninfo(): void {
+    delete this.storage[MockAuthStorage.TOKEN_INFO_STORAGE_KEY];
   }
 
   public getCodeVerifier(): string | null {
@@ -82,6 +90,7 @@ const authCallbackMock = jest.fn(() => [tokenInfo, { sub: 'USER_ID' }]);
 // @ts-ignore
 const fiefMock = jest.fn<Fief, any>(() => ({
   getAuthURL: () => 'https://bretagne.fief.dev/authorize',
+  getLogoutURL: () => 'https://bretagne.fief.dev/logout',
   authCallback: authCallbackMock,
   userinfo: () => ({ sub: 'REFRESHED_USER_ID' }),
 }));
@@ -200,5 +209,14 @@ describe('refreshUserinfo', () => {
 
     const userinfo = await fiefAuth.getUserinfo();
     expect(userinfo).toStrictEqual({ sub: 'REFRESHED_USER_ID' });
+  });
+});
+
+describe('logout', () => {
+  it('should redirect to the logout URL and clear storage', async () => {
+    await fiefAuth.logout('https://www.bretagne.duchy');
+    expect(window.location).toBeAt('https://bretagne.fief.dev/logout');
+    expect(mockAuthStorage.getTokenInfo()).toBeNull();
+    expect(mockAuthStorage.getUserinfo()).toBeNull();
   });
 });
