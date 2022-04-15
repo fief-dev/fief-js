@@ -35,6 +35,14 @@ const getCrypto = (): Crypto => {
     } catch { }
   }
 
+  // WebCrypto polyfill for older NodeJS
+  try {
+    // eslint-disable-next-line global-require
+    const { Crypto } = require('@peculiar/webcrypto');
+    crypto = new Crypto();
+    // eslint-disable-next-line no-empty
+  } catch { }
+
   if (crypto === undefined) {
     throw new Error('Can\'t initialize the Crypto module');
   }
