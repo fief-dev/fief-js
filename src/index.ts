@@ -1,5 +1,7 @@
 export {
   Fief,
+  FiefAccessTokenInfo,
+  FiefUserInfo,
   FiefAccessTokenExpired,
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingScope,

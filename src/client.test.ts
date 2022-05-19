@@ -277,6 +277,15 @@ describe('userinfo', () => {
   });
 });
 
+describe('updateProfile', () => {
+  it('should return data from userinfo endpoint', async () => {
+    axiosMock.onPatch('/profile').reply(200, { sub: userId });
+
+    const userinfo = await fief.updateProfile('ACCESS_TOKEN', { email: 'anne@bretagne.duchy' });
+    expect(userinfo).toStrictEqual({ sub: userId });
+  });
+});
+
 describe('getLogoutURL', () => {
   it('should generate URL with redirect_uri parameter', async () => {
     const logoutURL = await fief.getLogoutURL({ redirectURI: 'https://www.bretagne.duchy' });

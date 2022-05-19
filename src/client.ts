@@ -17,6 +17,8 @@ export interface FiefAccessTokenInfo {
   access_token: string;
 }
 
+export type FiefUserInfo = Record<string, any>;
+
 export class FiefError extends Error { }
 export class FiefAccessTokenInvalid extends FiefError { }
 export class FiefAccessTokenExpired extends FiefError { }
@@ -106,7 +108,7 @@ export class Fief {
     code: string,
     redirectURI: string,
     codeVerifier?: string,
-  ): Promise<[FiefTokenResponse, Record<string, any>]> {
+  ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
     const payload = qs.stringify({
       grant_type: 'authorization_code',
@@ -139,7 +141,7 @@ export class Fief {
   public async authRefreshToken(
     refreshToken: string,
     scope?: string[],
-  ): Promise<[FiefTokenResponse, Record<string, any>]> {
+  ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
     const payload = qs.stringify({
       grant_type: 'refresh_token',
@@ -207,9 +209,9 @@ export class Fief {
     }
   }
 
-  public async userinfo(accessToken: string): Promise<Record<string, any>> {
+  public async userinfo(accessToken: string): Promise<FiefUserInfo> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const { data } = await this.client.get<Record<string, any>>(
+    const { data } = await this.client.get<FiefUserInfo>(
       openIDConfiguration.userinfo_endpoint,
       {
         headers: {
@@ -218,6 +220,24 @@ export class Fief {
       },
     );
     return data;
+  }
+
+  public async updateProfile(
+    accessToken: string,
+    data: Record<string, any>,
+  ): Promise<FiefUserInfo> {
+    const updateProfileEndpoint = `${this.baseURL}/profile`;
+
+    const { data: userinfo } = await this.client.patch<FiefUserInfo>(
+      updateProfileEndpoint,
+      {
+        data,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    return userinfo;
   }
 
   public async getLogoutURL(parameters: { redirectURI: string }): Promise<string> {
@@ -251,7 +271,7 @@ export class Fief {
     jwks: jose.JSONWebKeySet;
     code?: string;
     accessToken?: string;
-  }): Promise<Record<string, any>> {
+  }): Promise<FiefUserInfo> {
     const {
       idToken,
       jwks,
