@@ -14,6 +14,7 @@ export interface FiefTokenResponse {
 export interface FiefAccessTokenInfo {
   id: string;
   scope: string[];
+  permissions: string[];
   access_token: string;
 }
 
@@ -23,6 +24,7 @@ export class FiefError extends Error { }
 export class FiefAccessTokenInvalid extends FiefError { }
 export class FiefAccessTokenExpired extends FiefError { }
 export class FiefAccessTokenMissingScope extends FiefError { }
+export class FiefAccessTokenMissingPermission extends FiefError { }
 export class FiefIdTokenInvalid extends FiefError { }
 
 export interface FiefParameters {
@@ -169,9 +171,10 @@ export class Fief {
     return [data, userinfo];
   }
 
-  public async validateAcessToken(
+  public async validateAccessToken(
     accessToken: string,
     requiredScopes?: string[],
+    requiredPermissions?: string[],
   ): Promise<FiefAccessTokenInfo> {
     const signatureKeys = jose.createLocalJWKSet(await this.getJWKS());
     try {
@@ -194,9 +197,25 @@ export class Fief {
         });
       }
 
+      const permissions = claims.permissions as (string[] | undefined);
+      if (permissions === undefined) {
+        throw new FiefAccessTokenInvalid();
+      }
+      if (requiredPermissions) {
+        requiredPermissions.forEach((requiredPermission) => {
+          const inAccessTokenPermissions = permissions.some(
+            (permission) => permission === requiredPermission,
+          );
+          if (!inAccessTokenPermissions) {
+            throw new FiefAccessTokenMissingPermission();
+          }
+        });
+      }
+
       return {
         id: claims.sub as string,
         scope: accessTokenScopes,
+        permissions,
         access_token: accessToken,
       };
     } catch (err) {

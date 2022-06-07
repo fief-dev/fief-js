@@ -13,7 +13,7 @@ export const userId = uuidv4();
 
 export const generateToken = async (
   encrypt: boolean,
-  claims?: Record<string, string | number>,
+  claims?: Record<string, any>,
   exp?: number,
 ): Promise<string> => {
   const signedToken = await new jose
