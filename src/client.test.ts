@@ -304,7 +304,7 @@ describe('userinfo', () => {
 
 describe('updateProfile', () => {
   it('should return data from userinfo endpoint', async () => {
-    axiosMock.onPatch('/profile').reply(200, { sub: userId });
+    axiosMock.onPatch('/api/profile').reply(200, { sub: userId });
 
     const userinfo = await fief.updateProfile('ACCESS_TOKEN', { email: 'anne@bretagne.duchy' });
     expect(userinfo).toStrictEqual({ sub: userId });

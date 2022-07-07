@@ -245,7 +245,7 @@ export class Fief {
     accessToken: string,
     data: Record<string, any>,
   ): Promise<FiefUserInfo> {
-    const updateProfileEndpoint = `${this.baseURL}/profile`;
+    const updateProfileEndpoint = `${this.baseURL}/api/profile`;
 
     const { data: userinfo } = await this.client.patch<FiefUserInfo>(
       updateProfileEndpoint,
