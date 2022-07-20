@@ -10,3 +10,4 @@ export {
 } from './client';
 
 export * as browser from './browser';
+export * as crypto from './crypto';
