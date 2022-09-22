@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { useMemo } from 'react';
+import { useMemo, ReactNode } from 'react';
 
 import { FiefAuth } from '../browser';
 import { Fief, FiefParameters } from '../client';
 import { FiefAuthContext } from './context';
 import { FiefReactAuthStorage, useAuthStorageReduce } from './storage';
 
-export interface FiefAuthProviderProps extends FiefParameters { }
+export interface FiefAuthProviderProps extends FiefParameters { children?: ReactNode }
 
 export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = (props) => {
   const {
