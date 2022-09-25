@@ -1,18 +1,79 @@
-import { Fief, FiefTokenResponse } from './client';
+/**
+ * Browser integration.
+ *
+ * @module
+ */
+
+import { Fief, FiefTokenResponse, FiefUserInfo } from './client';
 import { generateCodeVerifier, getCodeChallenge } from './crypto';
 
+/**
+ * Interface that should follow a class to implement storage for authentication data.
+ */
 export interface IFiefAuthStorage {
-  getUserinfo(): Record<string, any> | null;
-  setUserinfo(userinfo: Record<string, any>): void;
+  /**
+   * Retrieve current user information from storage, if available.
+   */
+  getUserinfo(): FiefUserInfo | null;
+
+  /**
+   * Store current user information in storage.
+   *
+   * @param userinfo - The user information to store.
+   */
+  setUserinfo(userinfo: FiefUserInfo): void;
+
+  /**
+   * Remove current user information from storage.
+   */
   clearUserinfo(): void;
+
+  /**
+   * Retrieve current token information from storage, if available.
+   */
   getTokenInfo(): FiefTokenResponse | null;
+
+  /**
+   * Store current token information in storage.
+   *
+   * @param tokenInfo - The token information to store.
+   */
   setTokenInfo(tokenInfo: FiefTokenResponse): void;
+
+  /**
+   * Remove current token information from storage.
+   */
   clearTokeninfo(): void;
+
+  /**
+   * Retrieve PKCE code verifier from storage, if any.
+   *
+   * @see [PKCE](https://docs.fief.dev/going-further/pkce/)
+   */
   getCodeVerifier(): string | null;
+
+  /**
+   * Set a PKCE code verifier in storage.
+   *
+   * @param code - The code verifier to store.
+   *
+   * @see [PKCE](https://docs.fief.dev/going-further/pkce/)
+   */
   setCodeVerifier(code: string): void;
+
+  /**
+   * Remove PKCE code verifier from storage.
+   *
+   * @see [PKCE](https://docs.fief.dev/going-further/pkce/)
+   */
   clearCodeVerifier(): void;
 }
 
+/**
+ * Implementation of an authentication storage using standard browser `sessionStorage`.
+ *
+ * @see [Window.sessionStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage)
+ */
 class FiefAuthStorage implements IFiefAuthStorage {
   private storage: Storage;
 
@@ -26,7 +87,7 @@ class FiefAuthStorage implements IFiefAuthStorage {
     this.storage = window.sessionStorage;
   }
 
-  public getUserinfo(): Record<string, any> | null {
+  public getUserinfo(): FiefUserInfo | null {
     const value = this.storage.getItem(FiefAuthStorage.USERINFO_STORAGE_KEY);
     if (!value) {
       return null;
@@ -91,11 +152,26 @@ export class FiefAuthAuthorizeError extends FiefAuthError {
 
 export class FiefAuthNotAuthenticatedError extends FiefAuthError { }
 
+/**
+ * Helper class to integrate Fief authentication in a browser application.
+ *
+ * @example
+ * ```ts
+ * const fiefClient = new fief.Fief({
+ *     baseURL: 'https://example.fief.dev',
+ *     clientId: 'YOUR_CLIENT_ID',
+ * });
+ * const fiefAuth = new fief.browser.FiefAuth(fiefClient);
+ * ```
+ */
 export class FiefAuth {
   private client: Fief;
 
   private storage: IFiefAuthStorage;
 
+  /**
+   * @param client - Instance of a {@link Fief} client.
+   */
   constructor(client: Fief, storage?: IFiefAuthStorage) {
     this.client = client;
     if (storage !== undefined) {
@@ -105,18 +181,62 @@ export class FiefAuth {
     }
   }
 
+  /**
+   * Return whether there is a valid user session in the browser.
+   *
+   * @returns `true` if there is a valid user session, `false` otherwise.
+   *
+   * @example
+   * ```ts
+   * const isAuthenticated = fiefAuth.isAuthenticated();
+   * ```
+   */
   public isAuthenticated(): boolean {
     return this.storage.getTokenInfo() !== null;
   }
 
-  public getUserinfo(): Record<string, any> | null {
+  /**
+   * Return the user information object available in session, or `null` if no current session.
+   *
+   * @returns The user information, or null if not available.
+   *
+   * @example
+   * ```ts
+   * const userinfo = fiefAuth.getUserinfo();
+   * ````
+   */
+  public getUserinfo(): FiefUserInfo | null {
     return this.storage.getUserinfo();
   }
 
+  /**
+   * Return the token information object available in session, or `null` if no current session.
+   *
+   * @returns The token information, or null if not available.
+   *
+   * @example
+   * ```ts
+   * const tokenInfo = fiefAuth.getTokenInfo();
+   * ```
+   */
   public getTokenInfo(): FiefTokenResponse | null {
     return this.storage.getTokenInfo();
   }
 
+  /**
+   * Start a Fief authorization process and perform the redirection.
+   *
+   * Under the hood, it automatically handles
+   * the [PKCE code challenge](https://docs.fief.dev/going-further/pkce/).
+   *
+   * @param redirectURI - Your callback URI where the user
+   * will be redirected after Fief authentication.
+   *
+   * @example
+   * ```ts
+   * fiefAuth.redirectToLogin('http://localhost:8080/callback.html');
+   * ```
+   */
   public async redirectToLogin(redirectURI: string): Promise<void> {
     const codeVerifier = await generateCodeVerifier();
     const codeChallenge = await getCodeChallenge(codeVerifier, 'S256');
@@ -131,6 +251,16 @@ export class FiefAuth {
     window.location.href = authorizeURL;
   }
 
+  /**
+   * Complete the Fief authentication process by exchanging
+   * the authorization code available in query parameters
+   * and store the tokens and user information in the browser session.
+   *
+   * Under the hood, it automatically handles
+   * the [PKCE code challenge](https://docs.fief.dev/going-further/pkce/).
+   *
+   * @param redirectURI - The exact same `redirectURI` you passed to the authorization URL.
+   */
   public async authCallback(redirectURI: string): Promise<void> {
     const params = new URLSearchParams(window.location.search);
     const error = params.get('error');
@@ -156,7 +286,28 @@ export class FiefAuth {
     this.storage.setUserinfo(userinfo);
   }
 
-  public async refreshUserinfo(): Promise<Record<string, any>> {
+  /**
+   * Refresh user information from the Fief API using the access token available in session.
+   *
+   * The fresh user information is returned **and** automatically updated in the session storage.
+   *
+   * @returns The refreshed user information
+   *
+   * @example
+   * ```ts
+   * fiefAuth.refreshUserinfo()
+   *     .then((userinfo) => {
+   *         console.log(userinfo);
+   *     })
+   *     .catch((err) => {
+   *         if (err instance of fief.browser.FiefAuthNotAuthenticatedError) {
+   *             console.error('User is not logged in');
+   *         }
+   *     })
+   * ;
+   * ```
+   */
+  public async refreshUserinfo(): Promise<FiefUserInfo> {
     const tokenInfo = this.getTokenInfo();
     if (tokenInfo === null) {
       throw new FiefAuthNotAuthenticatedError();
@@ -166,6 +317,17 @@ export class FiefAuth {
     return userinfo;
   }
 
+  /**
+   * Clear the access token and the user information from the browser storage
+   * and redirect to the Fief logout endpoint.
+   *
+   * @param redirectURI - A valid URL where the user will be redirected after the logout process.
+   *
+   * @example
+   * ```ts
+   * fiefAuth.logout('http://localhost:8080')
+   * ```
+   */
   public async logout(redirectURI: string): Promise<void> {
     this.storage.clearUserinfo();
     this.storage.clearTokeninfo();

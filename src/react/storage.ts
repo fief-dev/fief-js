@@ -2,16 +2,16 @@ import * as React from 'react';
 import { useReducer } from 'react';
 
 import { IFiefAuthStorage } from '../browser';
-import { FiefTokenResponse } from '../client';
+import { FiefTokenResponse, FiefUserInfo } from '../client';
 
 export interface FiefAuthState {
-  userinfo: Record<string, any> | null;
+  userinfo: FiefUserInfo | null;
   tokenInfo: FiefTokenResponse | null;
 }
 
 interface SetUserInfoAuthReducerAction {
   type: 'setUserinfo';
-  value: Record<string, any>;
+  value: FiefUserInfo;
 }
 
 interface ClearUserInfoAuthReducerAction {
@@ -66,11 +66,11 @@ export class FiefReactAuthStorage implements IFiefAuthStorage {
     this.sessionStorage = window.sessionStorage;
   }
 
-  public getUserinfo(): Record<string, any> | null {
+  public getUserinfo(): FiefUserInfo | null {
     return this.state.userinfo || null;
   }
 
-  public setUserinfo(userinfo: Record<string, any>): void {
+  public setUserinfo(userinfo: FiefUserInfo): void {
     this.dispatch({ type: 'setUserinfo', value: userinfo });
   }
 

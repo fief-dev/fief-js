@@ -23,11 +23,6 @@ export default [
       commonjs(),
       typescript(),
       terser(),
-      copy({
-        targets: [
-          { src: 'src/index.html', dest: 'build' },
-        ],
-      }),
     ],
   },
   // CommonJS (for Node)

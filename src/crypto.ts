@@ -50,6 +50,15 @@ const getCrypto = (): Crypto => {
   return crypto;
 };
 
+/**
+ * Return the validation hash of a value.
+ *
+ * Useful to check the validity `c_hash` and `at_hash` claims.
+ *
+ * @param value - The value to hash.
+ *
+ * @returns The hashed value.
+ */
 export const getValidationHash = async (value: string): Promise<string> => {
   const crypto = getCrypto();
   const msgBuffer = new TextEncoder().encode(value);
@@ -61,11 +70,28 @@ export const getValidationHash = async (value: string): Promise<string> => {
   return base64Hash;
 };
 
+/**
+ * Check if a hash corresponds to the provided value.
+ *
+ * Useful to check the validity `c_hash` and `at_hash` claims.
+ *
+ * @param value - The plain value to challenge.
+ * @param hash - The hash to compare with.
+ *
+ * @returns If the hash is valid.
+ */
 export const isValidHash = async (value: string, hash: string): Promise<boolean> => {
   const valueHash = await getValidationHash(value);
   return valueHash === hash;
 };
 
+/**
+ * Generate a cryptographic-safe value suitable for PKCE.
+ *
+ * @returns A code verifier to use for PKCE.
+ *
+ * @see [PKCE](https://docs.fief.dev/going-further/pkce/)
+ */
 export const generateCodeVerifier = async (): Promise<string> => {
   const crypto = getCrypto();
   const randomArray = new Uint8Array(96);
@@ -73,6 +99,17 @@ export const generateCodeVerifier = async (): Promise<string> => {
   return Base64.fromUint8Array(randomArray, true);
 };
 
+/**
+ * Generate a code challenge from a code verifier for PKCE.
+ *
+ * @param code - The code verifier.
+ * @param method - The hashing method.
+ * Can either be `plain` or `S256`. For maximum security, prefer `S256`.
+ *
+ * @returns A code challenge to use for PKCE.
+ *
+ * @see [PKCE](https://docs.fief.dev/going-further/pkce/)
+ */
 export const getCodeChallenge = async (code: string, method: 'plain' | 'S256'): Promise<string> => {
   if (method === 'plain') {
     return code;

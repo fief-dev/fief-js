@@ -8,6 +8,29 @@ import { FiefReactAuthStorage, useAuthStorageReduce } from './storage';
 
 export interface FiefAuthProviderProps extends FiefParameters { children?: ReactNode }
 
+/**
+ * Provide the necessary context for Fief, especially the Fief client and user session state.
+ *
+ * Every component nested inside this component will have access to the Fief hooks.
+ *
+ * @param props - Component properties.
+ *
+ * @example
+ * ```ts
+ * function App() {
+ *   return (
+ *     <FiefAuthProvider
+ *       baseURL="https://example.fief.dev"
+ *       clientId="YOUR_CLIENT_ID"
+ *     >
+ *       <div className="App">
+ *         <h1>Fief React example</h1>
+ *       </div>
+ *     </FiefAuthProvider>
+ *   );
+ * }
+ * ```
+ */
 export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = (props) => {
   const {
     baseURL,

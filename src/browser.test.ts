@@ -3,7 +3,7 @@
  */
 import 'jest-location-mock';
 
-import type { Fief, FiefTokenResponse } from './client';
+import type { Fief, FiefTokenResponse, FiefUserInfo } from './client';
 import {
   FiefAuth,
   FiefAuthAuthorizeError,
@@ -27,7 +27,7 @@ class MockAuthStorage implements IFiefAuthStorage {
     this.storage = {};
   }
 
-  public getUserinfo(): Record<string, any> | null {
+  public getUserinfo(): FiefUserInfo | null {
     const value = this.storage[MockAuthStorage.USERINFO_STORAGE_KEY];
     if (!value) {
       return null;
@@ -35,7 +35,7 @@ class MockAuthStorage implements IFiefAuthStorage {
     return JSON.parse(value);
   }
 
-  public setUserinfo(userinfo: Record<string, any>): void {
+  public setUserinfo(userinfo: FiefUserInfo): void {
     this.storage[MockAuthStorage.USERINFO_STORAGE_KEY] = JSON.stringify(userinfo);
   }
 
@@ -119,8 +119,8 @@ describe('getUserinfo', () => {
   });
 
   it('should return userinfo object if in storage', () => {
-    mockAuthStorage.setUserinfo({ sub: 'USER_ID' });
-    expect(fiefAuth.getUserinfo()).toStrictEqual({ sub: 'USER_ID' });
+    mockAuthStorage.setUserinfo({ sub: 'USER_ID', email: 'anne@bretagne.duchy', tenant_id: 'TENANT_ID' });
+    expect(fiefAuth.getUserinfo()).toStrictEqual({ sub: 'USER_ID', email: 'anne@bretagne.duchy', tenant_id: 'TENANT_ID' });
   });
 });
 
