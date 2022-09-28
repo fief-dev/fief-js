@@ -74,7 +74,6 @@ export interface FiefAccessTokenInfo {
 /**
  * Dictionary containing user information.
  *
- * [User fields](https://docs.fief.dev/getting-started/user-fields/) values for this user are also present, indexed by their slug.
  *
  * **Example:**
  *
@@ -83,12 +82,14 @@ export interface FiefAccessTokenInfo {
  *     "sub": "aeeb8bfa-e8f4-4724-9427-c3d5af66190e",
  *     "email": "anne@bretagne.duchy",
  *     "tenant_id": "c91ecb7f-359c-4244-8385-51ecd6c0d06b",
- *     "first_name": "Anne",
- *     "last_name": "De Bretagne",
+ *     "fields": {
+ *         "first_name": "Anne",
+ *         "last_name": "De Bretagne"
+ *     }
  * }
  * ```
  */
-export interface FiefUserInfo {
+export interface FiefUserInfo extends jose.JWTPayload {
   /**
    * ID of the user.
    */
@@ -104,7 +105,10 @@ export interface FiefUserInfo {
    */
   tenant_id: string;
 
-  [propName: string]: unknown;
+  /**
+   * [User fields](https://docs.fief.dev/getting-started/user-fields/) values for this user, indexed by their slug.
+   */
+  fields: Record<string, any>;
 }
 
 export class FiefError extends Error { }

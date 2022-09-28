@@ -119,7 +119,12 @@ describe('getUserinfo', () => {
   });
 
   it('should return userinfo object if in storage', () => {
-    mockAuthStorage.setUserinfo({ sub: 'USER_ID', email: 'anne@bretagne.duchy', tenant_id: 'TENANT_ID' });
+    mockAuthStorage.setUserinfo({
+      sub: 'USER_ID',
+      email: 'anne@bretagne.duchy',
+      tenant_id: 'TENANT_ID',
+      fields: {},
+    });
     expect(fiefAuth.getUserinfo()).toStrictEqual({ sub: 'USER_ID', email: 'anne@bretagne.duchy', tenant_id: 'TENANT_ID' });
   });
 });
