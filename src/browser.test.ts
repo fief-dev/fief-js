@@ -125,7 +125,12 @@ describe('getUserinfo', () => {
       tenant_id: 'TENANT_ID',
       fields: {},
     });
-    expect(fiefAuth.getUserinfo()).toStrictEqual({ sub: 'USER_ID', email: 'anne@bretagne.duchy', tenant_id: 'TENANT_ID' });
+    expect(fiefAuth.getUserinfo()).toStrictEqual({
+      sub: 'USER_ID',
+      email: 'anne@bretagne.duchy',
+      tenant_id: 'TENANT_ID',
+      fields: {},
+    });
   });
 });
 
