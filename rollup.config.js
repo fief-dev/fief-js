@@ -2,7 +2,6 @@ import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
-import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
 
 import pkg from './package.json';
@@ -31,7 +30,6 @@ export default [
       'src/index.ts',
       'src/react/index.ts',
     ],
-    external: ['ms'],
     plugins: [
       typescript({ declaration: false, rootDir: 'src' }),
     ],
@@ -51,7 +49,6 @@ export default [
       'src/index.ts',
       'src/react/index.ts',
     ],
-    external: ['ms'],
     plugins: [
       typescript({
         declaration: true,
