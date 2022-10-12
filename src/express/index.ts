@@ -3,11 +3,22 @@ import { Request, Response, NextFunction } from 'express';
 import {
   Fief,
   FiefAccessTokenExpired,
+  FiefAccessTokenInfo,
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
   FiefUserInfo,
 } from '../client';
+
+declare global {
+  namespace Express {
+    // eslint-disable-next-line no-shadow
+    interface Request {
+      accessTokenInfo: FiefAccessTokenInfo | null;
+      user: FiefUserInfo | null;
+    }
+  }
+}
 
 interface FiefAuthParameters {
   fief: Fief;
@@ -72,6 +83,9 @@ export const fiefAuth = (parameters: FiefAuthParameters) => {
     } = authenticatedParameters;
 
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      req.accessTokenInfo = null;
+      req.user = null;
+
       const token = tokenGetter(req);
       if (token === null) {
         if (optional === true) {
@@ -82,7 +96,6 @@ export const fiefAuth = (parameters: FiefAuthParameters) => {
 
       try {
         const info = await fief.validateAccessToken(token, scope, permissions);
-        // @ts-ignore
         req.accessTokenInfo = info;
 
         let user: FiefUserInfo | null = null;
@@ -93,7 +106,6 @@ export const fiefAuth = (parameters: FiefAuthParameters) => {
             setUserInfoCache(info.id, user, req);
           }
         }
-        // @ts-ignore
         req.user = user;
       } catch (err) {
         if (err instanceof FiefAccessTokenInvalid || err instanceof FiefAccessTokenExpired) {
