@@ -191,7 +191,7 @@ describe('withAuth', () => {
     const result = await fiefAuth.withAuth(getMockGetServerSidePropsRedirectResult())(context);
 
     // @ts-ignore
-    expect(result.props.accessTokenInfo).toEqual({ redirect: {} });
+    expect(result).toEqual({ redirect: {} });
   });
 
   describe('scope', () => {
