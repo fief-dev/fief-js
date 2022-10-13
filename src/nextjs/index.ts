@@ -15,8 +15,8 @@ import {
   AuthenticateRequestParameters,
   AuthenticateRequestResult,
   FiefAuth as FiefAuthServer,
-  FiefForbiddenError,
-  FiefUnauthorizedError,
+  FiefAuthForbidden,
+  FiefAuthUnauthorized,
   IUserInfoCache,
   TokenGetter,
 } from '../server';
@@ -96,7 +96,7 @@ export class FiefAuth {
         user = result.user;
         accessTokenInfo = result.accessTokenInfo;
       } catch (err) {
-        if (err instanceof FiefUnauthorizedError) {
+        if (err instanceof FiefAuthUnauthorized) {
           const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
           return {
             redirect: {
@@ -105,7 +105,7 @@ export class FiefAuth {
             },
           };
         }
-        if (err instanceof FiefForbiddenError) {
+        if (err instanceof FiefAuthForbidden) {
           forbidden = true;
         }
       }
@@ -151,10 +151,10 @@ export class FiefAuth {
         user = result.user;
         accessTokenInfo = result.accessTokenInfo;
       } catch (err) {
-        if (err instanceof FiefUnauthorizedError) {
+        if (err instanceof FiefAuthUnauthorized) {
           return this.unauthorizedResponse(req, res);
         }
-        if (err instanceof FiefForbiddenError) {
+        if (err instanceof FiefAuthForbidden) {
           return this.forbiddenResponse(req, res);
         }
       }

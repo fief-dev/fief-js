@@ -1,3 +1,8 @@
+/**
+ * Common logic for NodeJS HTTP servers.
+ *
+ * @module
+ */
 import { IncomingMessage, OutgoingMessage } from 'http';
 
 import {
@@ -11,46 +16,130 @@ import {
   FiefUserInfo,
 } from './client';
 
-export class FiefServerError extends FiefError { }
-export class FiefUnauthorizedError extends FiefServerError { }
-export class FiefForbiddenError extends FiefServerError { }
+export class FiefAuthError extends FiefError { }
+export class FiefAuthUnauthorized extends FiefAuthError { }
+export class FiefAuthForbidden extends FiefAuthError { }
 
+/**
+ * Type of a function that can be used to retrieve an access token.
+ *
+ * @param req — A NodeJS request object.
+ *
+ * @returns An access token or `null`.
+ */
 export type TokenGetter<RQ extends IncomingMessage> = (req: RQ) => Promise<string | null>;
 
+/**
+ * Interface that should follow a class to implement cache for user data.
+ */
 export interface IUserInfoCache<RQ extends IncomingMessage, RS extends OutgoingMessage> {
+  /**
+   * Retrieve user information from cache, if available.
+   *
+   * @param id - ID of the user to retrieve the user information for.
+   * @param req - A NodeJS request object.
+   * @param res - A NodeJS response object.
+   *
+   * @returns User information or `null`.
+   */
   get(
     id: string,
     req: RQ,
     res: RS,
   ): Promise<FiefUserInfo | null>;
-  set(id: string,
+
+  /**
+   * Store user information in cache.
+   *
+   * @param id - ID of the user to store user information for.
+   * @param userinfo - The user information to store.
+   * @param req - A NodeJS request object.
+   * @param res - A NodeJS response object.
+   *
+   */
+  set(
+    id: string,
     userinfo: FiefUserInfo,
     req: RQ,
     res: RS,
   ): Promise<void>;
+
+  /**
+   * Remove user information from cache.
+   *
+   * @param id - ID of the user to remove the user information for.
+   * @param req - A NodeJS request object.
+   * @param res - A NodeJS response object.
+   *
+   */
   remove(
     id: string,
     req: RQ,
     res: RS,
   ): Promise<void>;
+
+  /**
+   * Clear all the user information from cache.
+   *
+   * @param req - A NodeJS request object.
+   * @param res - A NodeJS response object.
+   *
+   */
   clear(
     req: RQ,
     res: RS,
   ): Promise<void>;
 }
 
+/**
+ * Parameters to apply when authenticating a request.
+ */
 export interface AuthenticateRequestParameters {
+  /**
+   * If `false` and the request is not authenticated,
+   * a {@link FiefAuthUnauthorized} error will be raised.
+   */
   optional?: boolean;
+
+  /**
+   * Optional list of scopes required.
+   * If the access token lacks one of the required scope,
+   * a {@link FiefAuthForbidden} error will be raised.
+   */
   scope?: string[];
+
+  /**
+   * Optional list of permissions required.
+   * If the access token lacks one of the required permission,
+   * a {@link FiefAuthForbidden} error will be raised.
+   */
   permissions?: string[];
+
+  /**
+   * If `true`, the user information will be refreshed from the Fief API.
+   * Otherwise, the cache will be used.
+   */
   refresh?: boolean;
 }
 
+/**
+ * Data returned after a request has been successfully authenticated.
+ */
 export interface AuthenticateRequestResult {
+  /**
+   * Information about the current access token.
+   */
   accessTokenInfo: FiefAccessTokenInfo | null;
+
+  /**
+   * Current user information.
+   */
   user: FiefUserInfo | null;
 }
 
+/**
+ * Class implementing common logic for authenticating requests in NodeJS servers.
+ */
 export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
   private client: Fief;
 
@@ -58,12 +147,24 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
 
   private userInfoCache?: IUserInfoCache<RQ, RS>;
 
+  /**
+   * @param client - Instance of a {@link Fief} client.
+   * @param tokenGetter - A {@link TokenGetter} function.
+   * @param userInfoCache - An instance of a {@link IUserInfoCache} class.
+   */
   constructor(client: Fief, tokenGetter: TokenGetter<RQ>, userInfoCache?: IUserInfoCache<RQ, RS>) {
     this.client = client;
     this.tokenGetter = tokenGetter;
     this.userInfoCache = userInfoCache;
   }
 
+  /**
+   * Factory to generate handler for authenticating NodeJS requests.
+   *
+   * @param parameters - Parameters to apply when authenticating the request.
+   *
+   * @returns A handler to authenticate NodeJS requests.
+   */
   public authenticate(parameters: AuthenticateRequestParameters) {
     return async (
       req: RQ,
@@ -78,7 +179,7 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
 
       const token = await this.tokenGetter(req);
       if (token === null && optional !== true) {
-        throw new FiefUnauthorizedError();
+        throw new FiefAuthUnauthorized();
       }
 
       let accessTokenInfo: FiefAccessTokenInfo | null = null;
@@ -96,13 +197,13 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
           }
         } catch (err) {
           if (err instanceof FiefAccessTokenInvalid || err instanceof FiefAccessTokenExpired) {
-            throw new FiefUnauthorizedError();
+            throw new FiefAuthUnauthorized();
           }
           if (
             err instanceof FiefAccessTokenMissingScope
             || err instanceof FiefAccessTokenMissingPermission
           ) {
-            throw new FiefForbiddenError();
+            throw new FiefAuthForbidden();
           }
           throw err;
         }
@@ -112,6 +213,15 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
   }
 }
 
+/**
+ * A {@link TokenGetter} function retrieving a token
+ * from the `Authorization` header of an HTTP request
+ * with the `Bearer` scheme.
+ *
+ * @param req - A NodeJS request object.
+ *
+ * @returns An access token or `null`.
+ */
 export const authorizationBearerGetter: TokenGetter<IncomingMessage> = async (
   req: IncomingMessage,
 ) => {
