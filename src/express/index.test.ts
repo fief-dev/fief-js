@@ -1,12 +1,14 @@
+/* eslint-disable class-methods-use-this */
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
-import express, { Express, Request } from 'express';
+import express, { Express, Request, Response } from 'express';
 import session from 'express-session';
 import request from 'supertest';
 
 import { Fief, FiefUserInfo } from '../client';
 import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
-import { authorizationBearerGetter, fiefAuth } from './index';
+import { fiefAuth } from './index';
+import { authorizationBearerGetter, IUserInfoCache } from '../server';
 
 const axiosMock = new MockAdapter(axios);
 
@@ -17,25 +19,37 @@ const fief = new Fief({
   clientSecret: 'CLIENT_SECRET',
 });
 
-const getUserInfoCache = (id: string, req: Request): FiefUserInfo | null => {
-  // @ts-ignore
-  const userinfo = req.session[`userinfo-${id}`];
-  if (userinfo) {
-    return userinfo;
+class UserInfoCache implements IUserInfoCache<Request, Response> {
+  async get(id: string, req: Request, _res: Response): Promise<FiefUserInfo | null> {
+    // @ts-ignore
+    const userinfo = req.session[`userinfo-${id}`];
+    if (userinfo) {
+      return userinfo;
+    }
+    return null;
   }
-  return null;
-};
 
-const setUserInfoCache = (id: string, userinfo: FiefUserInfo, req: Request): void => {
-  // @ts-ignore
-  req.session[`userinfo-${id}`] = userinfo;
-};
+  async set(id: string, userinfo: FiefUserInfo, req: Request, _res: Response): Promise<void> {
+    // @ts-ignore
+    req.session[`userinfo-${id}`] = userinfo;
+  }
+
+  async remove(id: string, req: Request, _res: Response): Promise<void> {
+    // @ts-ignore
+    req.session[`userinfo-${id}`] = undefined;
+  }
+
+  async clear(req: Request, _res: Response): Promise<void> {
+    return new Promise((resolve) => {
+      req.session.destroy(resolve);
+    });
+  }
+}
 
 const fiefAuthMiddleware = fiefAuth({
-  fief,
+  client: fief,
   tokenGetter: authorizationBearerGetter,
-  getUserInfoCache,
-  setUserInfoCache,
+  userInfoCache: new UserInfoCache(),
 });
 
 const testApp = (): Express => {
