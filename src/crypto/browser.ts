@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { Base64 } from 'js-base64';
 
-import { CryptoHelperError, ICryptoHelper } from './index';
+import { CryptoHelperError, ICryptoHelper } from './base';
 
 class BrowserCryptoHelperError extends CryptoHelperError {}
 

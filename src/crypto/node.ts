@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import * as crypto from 'crypto';
 
-import { CryptoHelperError, ICryptoHelper } from './index';
+import { CryptoHelperError, ICryptoHelper } from './base';
 
 class NodeJSCryptoHelperError extends CryptoHelperError {}
 
