@@ -38,7 +38,6 @@
     "@types/express-session": "^1.17.5",
     "@types/jest": "^29.0.3",
     "@types/node": "^18.7.18",
-    "@types/qs": "^6.9.7",
     "@types/ramda": "^0.28.7",
     "@types/react": "^18.0.12",
     "@types/react-dom": "^18.0.6",
@@ -68,19 +67,8 @@
     "uuid": "^9.0.0"
   },
   "dependencies": {
-    "@peculiar/webcrypto": "^1.4.0",
     "axios": "^1.1.2",
     "jose": "^4.6.0",
-    "js-base64": "^3.7.2",
-    "qs": "^6.10.3"
-  },
-  "peerDependencies": {
-    "express": ">=4",
-    "react": ">=17"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
+    "js-base64": "^3.7.2"
   }
 }

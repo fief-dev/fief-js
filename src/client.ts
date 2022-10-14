@@ -1,7 +1,16 @@
 import axios, { Axios } from 'axios';
 import * as jose from 'jose';
-import * as qs from 'qs';
-import { isValidHash } from './crypto';
+import { getCrypto, ICryptoHelper } from './crypto';
+
+const serializeQueryString = (object: Record<string, string>): string => {
+  const elements: string[] = [];
+  Object.keys(object).forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(object, key)) {
+      elements.push(`${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`);
+    }
+  });
+  return elements.join('&');
+};
 
 /**
  * Object containing the tokens and related information
@@ -177,6 +186,8 @@ export class Fief {
 
   private jwks?: jose.JSONWebKeySet;
 
+  private crypto: ICryptoHelper;
+
   constructor(parameters: FiefParameters) {
     this.baseURL = parameters.baseURL;
     this.clientId = parameters.clientId;
@@ -197,6 +208,8 @@ export class Fief {
         auth: { username: this.clientId, password: this.clientSecret },
       } : {},
     });
+
+    this.crypto = getCrypto();
   }
 
   /**
@@ -278,7 +291,7 @@ export class Fief {
     codeVerifier?: string,
   ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const payload = qs.stringify({
+    const payload = serializeQueryString({
       grant_type: 'authorization_code',
       client_id: this.clientId,
       code,
@@ -328,7 +341,7 @@ export class Fief {
     scope?: string[],
   ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const payload = qs.stringify({
+    const payload = serializeQueryString({
       grant_type: 'refresh_token',
       client_id: this.clientId,
       refresh_token: refreshToken,
@@ -579,13 +592,16 @@ export class Fief {
       const { payload: claims } = await jose.jwtVerify(signedToken, signatureKeys);
 
       if (claims.c_hash !== undefined) {
-        if (!code || !(await isValidHash(code, claims.c_hash as string))) {
+        if (!code || !(await this.crypto.isValidHash(code, claims.c_hash as string))) {
           throw new FiefIdTokenInvalid();
         }
       }
 
       if (claims.at_hash !== undefined) {
-        if (!accessToken || !(await isValidHash(accessToken, claims.at_hash as string))) {
+        if (
+          !accessToken
+          || !(await this.crypto.isValidHash(accessToken, claims.at_hash as string))
+        ) {
           throw new FiefIdTokenInvalid();
         }
       }

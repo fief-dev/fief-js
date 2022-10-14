@@ -5,7 +5,7 @@
  */
 
 import { Fief, FiefTokenResponse, FiefUserInfo } from './client';
-import { generateCodeVerifier, getCodeChallenge } from './crypto';
+import { getCrypto, ICryptoHelper } from './crypto';
 
 /**
  * Interface that should follow a class to implement storage for authentication data.
@@ -169,6 +169,8 @@ export class FiefAuth {
 
   private storage: IFiefAuthStorage;
 
+  private crypto: ICryptoHelper;
+
   /**
    * @param client - Instance of a {@link Fief} client.
    */
@@ -179,6 +181,7 @@ export class FiefAuth {
     } else {
       this.storage = new FiefAuthStorage();
     }
+    this.crypto = getCrypto();
   }
 
   /**
@@ -238,8 +241,8 @@ export class FiefAuth {
    * ```
    */
   public async redirectToLogin(redirectURI: string): Promise<void> {
-    const codeVerifier = await generateCodeVerifier();
-    const codeChallenge = await getCodeChallenge(codeVerifier, 'S256');
+    const codeVerifier = await this.crypto.generateCodeVerifier();
+    const codeChallenge = await this.crypto.getCodeChallenge(codeVerifier, 'S256');
     this.storage.setCodeVerifier(codeVerifier);
 
     const authorizeURL = await this.client.getAuthURL({

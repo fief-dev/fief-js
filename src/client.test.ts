@@ -12,7 +12,7 @@ import {
 import {
   generateToken, signatureKeyPublic, encryptionKey, userId,
 } from '../tests/utils';
-import { getValidationHash } from './crypto';
+import { getCrypto } from './crypto';
 
 const axiosMock = new MockAdapter(axios);
 
@@ -33,6 +33,8 @@ const fiefEncryptionKey = new Fief({
 let accessToken: string;
 let signedIdToken: string;
 let encryptedIdToken: string;
+
+const cryptoHelper = getCrypto();
 
 beforeAll(async () => {
   accessToken = await generateToken(false);
@@ -146,8 +148,8 @@ describe('authCallback', () => {
   });
 
   it('should validate correct at_hash and c_hash claims', async () => {
-    const codeValidationHash = await getValidationHash('CODE');
-    const accessTokenValidationHash = await getValidationHash('ACCESS_TOKEN');
+    const codeValidationHash = await cryptoHelper.getValidationHash('CODE');
+    const accessTokenValidationHash = await cryptoHelper.getValidationHash('ACCESS_TOKEN');
 
     const idToken = await generateToken(
       false,
@@ -171,8 +173,8 @@ describe('authCallback', () => {
   });
 
   it('should reject invalid at_hash and c_hash claims', async () => {
-    const codeValidationHash = await getValidationHash('INVALID_CODE');
-    const accessTokenValidationHash = await getValidationHash('INVALID_ACCESS_TOKEN');
+    const codeValidationHash = await cryptoHelper.getValidationHash('INVALID_CODE');
+    const accessTokenValidationHash = await cryptoHelper.getValidationHash('INVALID_ACCESS_TOKEN');
 
     const idToken = await generateToken(
       false,

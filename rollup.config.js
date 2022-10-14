@@ -17,7 +17,20 @@ export default [
       sourcemap: true,
     },
     plugins: [
-      nodeResolve({ jsnext: true, preferBuiltins: true, browser: true }),
+      {
+        name: 'Resolve to browser-only Axios',
+        resolveId: (source, _importer, _options) => {
+          if (source === 'axios') {
+            return './node_modules/axios/dist/axios.js';
+          }
+          return null;
+        },
+      },
+      nodeResolve({
+        jsnext: true,
+        preferBuiltins: true,
+        browser: true,
+      }),
       json(),
       commonjs(),
       typescript(),
@@ -33,7 +46,11 @@ export default [
       'src/nextjs/index.ts',
     ],
     plugins: [
-      typescript({ declaration: false, rootDir: 'src' }),
+      typescript({
+        declaration: false,
+        rootDir: 'src',
+        exclude: ['**/*.test.ts'],
+      }),
     ],
     output: [
       {
@@ -58,6 +75,7 @@ export default [
         declaration: true,
         declarationDir: 'build/esm',
         rootDir: 'src',
+        exclude: ['**/*.test.ts'],
       }),
     ],
     output: [
