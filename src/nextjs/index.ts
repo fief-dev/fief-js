@@ -19,6 +19,8 @@ import {
   FiefAuthUnauthorized,
   IUserInfoCache,
   TokenGetter,
+  authorizationBearerGetter,
+  cookieGetter,
 } from '../server';
 
 const getServerSidePropsResultIsProps = <P>(result: GetServerSidePropsResult<P>): result is { props: P | Promise<P> } => Object.prototype.hasOwnProperty.call(result, 'props');
@@ -45,7 +47,7 @@ interface FiefAuthParameters {
   forbiddenResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
 }
 
-export class FiefAuth {
+class FiefAuth {
   private client: Fief;
 
   private fiefAuth: FiefAuthServer<IncomingMessage, OutgoingMessage>;
@@ -165,3 +167,12 @@ export class FiefAuth {
     };
   }
 }
+
+export {
+  AuthenticateRequestParameters,
+  IUserInfoCache,
+  TokenGetter,
+  authorizationBearerGetter,
+  cookieGetter,
+  FiefAuth,
+};

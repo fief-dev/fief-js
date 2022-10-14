@@ -1,4 +1,10 @@
 {
-    "entryPoints": ["src/index.ts", "src/react/index.ts"],
+    "entryPoints": [
+      "src/index.ts",
+      "src/server.ts",
+      "src/react/index.ts",
+      "src/express/index.ts",
+      "src/nextjs/index.ts"
+    ],
     "out": "docs"
 }

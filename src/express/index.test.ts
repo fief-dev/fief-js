@@ -7,7 +7,7 @@ import request from 'supertest';
 
 import { Fief, FiefUserInfo } from '../client';
 import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
-import { fiefAuth } from './index';
+import { createMiddleware } from './index';
 import { authorizationBearerGetter, IUserInfoCache } from '../server';
 
 const axiosMock = new MockAdapter(axios);
@@ -46,9 +46,9 @@ class UserInfoCache implements IUserInfoCache<Request, Response> {
   }
 }
 
-const fiefAuthMiddleware = fiefAuth({
+const fiefAuthMiddleware = createMiddleware({
   client: fief,
-  tokenGetter: authorizationBearerGetter,
+  tokenGetter: authorizationBearerGetter(),
   userInfoCache: new UserInfoCache(),
 });
 

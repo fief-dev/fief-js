@@ -1,0 +1,7 @@
+{
+  "name": "@fief/fief/nextjs",
+  "private": true,
+  "main": "../build/cjs/nextjs/index.js",
+  "module": "../build/esm/nextjs/index.js",
+  "types": "../build/esm/nextjs/index.d.ts"
+}

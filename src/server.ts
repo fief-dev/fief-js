@@ -214,15 +214,15 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
 }
 
 /**
- * A {@link TokenGetter} function retrieving a token
+ * Return a {@link TokenGetter} function retrieving a token
  * from the `Authorization` header of an HTTP request
- * with the `Bearer` scheme.
+ * with the specified scheme.
  *
- * @param req - A NodeJS request object.
+ * @param scheme - Scheme of the token. Defaults to `bearer`.
  *
- * @returns An access token or `null`.
+ * @returns A {@link TokenGetter} function.
  */
-export const authorizationBearerGetter: TokenGetter<IncomingMessage> = async (
+export const authorizationBearerGetter = (scheme: string = 'bearer'): TokenGetter<IncomingMessage> => async (
   req: IncomingMessage,
 ) => {
   const { authorization } = req.headers;
@@ -230,8 +230,33 @@ export const authorizationBearerGetter: TokenGetter<IncomingMessage> = async (
     return null;
   }
   const parts = authorization.split(' ');
-  if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
+  if (parts.length !== 2 || parts[0].toLowerCase() !== scheme) {
     return null;
   }
   return parts[1];
+};
+
+/**
+ * Return a {@link TokenGetter} function retrieving a token
+ * from a `Cookie` of an HTTP request.
+ *
+ * @param cookieName - Name of the cookie.
+ *
+ * @returns A {@link TokenGetter} function.
+ */
+export const cookieGetter = (cookieName: string): TokenGetter<IncomingMessage> => async (
+  req: IncomingMessage,
+) => {
+  const { cookie: cookieHeader } = req.headers;
+  if (cookieHeader === undefined) {
+    return null;
+  }
+  const cookies = cookieHeader.split('; ');
+  for (let i = 0; i < cookies.length; i += 1) {
+    const [name, value] = cookies[i].split('=', 1);
+    if (name === cookieName) {
+      return value;
+    }
+  }
+  return null;
 };

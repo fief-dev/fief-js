@@ -17,6 +17,8 @@ import {
   FiefAuthUnauthorized,
   IUserInfoCache,
   TokenGetter,
+  authorizationBearerGetter,
+  cookieGetter,
 } from '../server';
 
 declare global {
@@ -96,18 +98,22 @@ export interface FiefAuthParameters {
  *
  * @example Basic
  * ```ts
+ * const fief = require('@fief/fief');
+ * const fiefExpress = require('@fief/fief/express');
+ * const express = require('express');
+ *
  * const fiefClient = new fief.Fief({
  *     baseURL: 'https://example.fief.dev',
  *     clientId: 'YOUR_CLIENT_ID',
  *     clientSecret: 'YOUR_CLIENT_SECRET',
  * });
- * const fiefAuthMiddleware = fiefAuth({
+ * const fiefAuthMiddleware = fiefExpress.createMiddleware({
  *     client: fiefClient,
- *     tokenGetter: authorizationBearerGetter,
+ *     tokenGetter: fiefExpress.authorizationBearerGetter(),
  * });
  *
  * const app = express();
- * app.get('/authenticated', fiefAuthMiddleware(), (req, res, next) => {
+ * app.get('/authenticated', fiefAuthMiddleware(), (req, res) => {
  *     res.json(req.accessTokenInfo);
  * });
  * ```
@@ -115,15 +121,26 @@ export interface FiefAuthParameters {
  * @example Required scope
  * ```ts
  * app.get(
- *     '/required-scope',
+ *     '/authenticated-scope',
  *     fiefAuthMiddleware({ scope: ['required_scope'] }),
- *     (req, res, next) => {
+ *     (req, res) => {
+ *         res.json(req.accessTokenInfo);
+ *     },
+ * );
+ * ```
+ *
+ * @example Required permissions
+ * ```ts
+ * app.get(
+ *     '/authenticated-scope',
+ *     fiefAuthMiddleware({ spermissions: ['castles:read'] }),
+ *     (req, res) => {
  *         res.json(req.accessTokenInfo);
  *     },
  * );
  * ```
  */
-export const fiefAuth = (parameters: FiefAuthParameters) => {
+const createMiddleware = (parameters: FiefAuthParameters) => {
   const fiefAuthServer = new FiefAuth<Request, Response>(
     parameters.client,
     parameters.tokenGetter,
@@ -162,4 +179,13 @@ export const fiefAuth = (parameters: FiefAuthParameters) => {
       return next();
     };
   };
+};
+
+export {
+  AuthenticateRequestParameters,
+  IUserInfoCache,
+  TokenGetter,
+  authorizationBearerGetter,
+  cookieGetter,
+  createMiddleware,
 };

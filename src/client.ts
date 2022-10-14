@@ -283,6 +283,7 @@ export class Fief {
       client_id: this.clientId,
       code,
       redirect_uri: redirectURI,
+      ...this.clientSecret ? { client_secret: this.clientSecret } : {},
       ...codeVerifier ? { code_verifier: codeVerifier } : {},
     });
 

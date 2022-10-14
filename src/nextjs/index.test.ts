@@ -60,7 +60,7 @@ const userInfoCache = new UserInfoCache();
 
 const fiefAuth = new FiefAuth({
   client: fief,
-  tokenGetter: authorizationBearerGetter,
+  tokenGetter: authorizationBearerGetter(),
   userInfoCache,
   redirectURI: 'http://localhost:3000/callback',
 });

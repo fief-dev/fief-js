@@ -29,6 +29,8 @@ export default [
     input: [
       'src/index.ts',
       'src/react/index.ts',
+      'src/express/index.ts',
+      'src/nextjs/index.ts',
     ],
     plugins: [
       typescript({ declaration: false, rootDir: 'src' }),
@@ -48,6 +50,8 @@ export default [
     input: [
       'src/index.ts',
       'src/react/index.ts',
+      'src/express/index.ts',
+      'src/nextjs/index.ts',
     ],
     plugins: [
       typescript({
