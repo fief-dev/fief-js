@@ -3,10 +3,10 @@ import * as crypto from 'crypto';
 
 import { CryptoHelperError, ICryptoHelper } from './base';
 
-class NodeJSCryptoHelperError extends CryptoHelperError {}
+class NodeJSCryptoHelperError extends CryptoHelperError { }
 
 export class NodeJSCryptoHelper implements ICryptoHelper {
-  private crypto: Crypto;
+  private crypto: typeof crypto;
 
   constructor() {
     this.crypto = crypto;
@@ -19,9 +19,9 @@ export class NodeJSCryptoHelper implements ICryptoHelper {
 
   public async getValidationHash(value: string): Promise<string> {
     const msgBuffer = new TextEncoder().encode(value);
-    const hashBuffer = await this.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashBuffer = this.crypto.createHash('sha256').update(msgBuffer).digest();
 
-    const halfHash = hashBuffer.slice(0, hashBuffer.byteLength / 2);
+    const halfHash = hashBuffer.subarray(0, hashBuffer.byteLength / 2);
     const base64Hash = Buffer.from(new Uint8Array(halfHash)).toString('base64url');
 
     return base64Hash;
@@ -33,9 +33,15 @@ export class NodeJSCryptoHelper implements ICryptoHelper {
   }
 
   public async generateCodeVerifier(): Promise<string> {
-    const randomArray = new Uint8Array(96);
-    this.crypto.getRandomValues(randomArray);
-    return Buffer.from(randomArray).toString('base64url');
+    return new Promise((resolve, reject) => {
+      this.crypto.randomBytes(96, (err, buffer) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(buffer.toString('base64url'));
+        }
+      });
+    });
   }
 
   public async getCodeChallenge(code: string, method: 'plain' | 'S256'): Promise<string> {
@@ -45,9 +51,7 @@ export class NodeJSCryptoHelper implements ICryptoHelper {
 
     if (method === 'S256') {
       const msgBuffer = new TextEncoder().encode(code);
-      const hashBuffer = await this.crypto.subtle.digest('SHA-256', msgBuffer);
-      const base64Hash = Buffer.from(new Uint8Array(hashBuffer)).toString('base64url');
-      return base64Hash;
+      return this.crypto.createHash('sha256').update(msgBuffer).digest('base64url');
     }
 
     throw new CryptoHelperError(`Invalid method "${method}". Allowed methods are: plain, S256`);
