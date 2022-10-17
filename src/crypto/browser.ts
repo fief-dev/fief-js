@@ -1,9 +1,15 @@
 /* eslint-disable no-restricted-globals */
-import { Base64 } from 'js-base64';
 
 import { CryptoHelperError, ICryptoHelper } from './base';
 
-class BrowserCryptoHelperError extends CryptoHelperError {}
+class BrowserCryptoHelperError extends CryptoHelperError { }
+
+const toURLSafeBase64 = (buffer: ArrayBuffer): string => btoa(
+  String.fromCharCode(...new Uint8Array(buffer)),
+)
+  .replace(/=/g, '')
+  .replace(/[+/]/g, (m0) => (m0 === '+' ? '-' : '_'))
+  ;
 
 export class BrowserCryptoHelper implements ICryptoHelper {
   private crypto: Crypto;
@@ -19,6 +25,13 @@ export class BrowserCryptoHelper implements ICryptoHelper {
       this.crypto = self.crypto;
     }
 
+    // NextJS Edge runtime
+    // @ts-ignore
+    // eslint-disable-next-line no-undef
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime === 'vercel') {
+      this.crypto = globalThis.crypto;
+    }
+
     // @ts-ignore
     if (this.crypto === undefined) {
       throw new BrowserCryptoHelperError(
@@ -32,9 +45,7 @@ export class BrowserCryptoHelper implements ICryptoHelper {
     const hashBuffer = await this.crypto.subtle.digest('SHA-256', msgBuffer);
 
     const halfHash = hashBuffer.slice(0, hashBuffer.byteLength / 2);
-    const base64Hash = Base64.fromUint8Array(new Uint8Array(halfHash), true);
-
-    return base64Hash;
+    return toURLSafeBase64(halfHash);
   }
 
   public async isValidHash(value: string, hash: string): Promise<boolean> {
@@ -45,7 +56,7 @@ export class BrowserCryptoHelper implements ICryptoHelper {
   public async generateCodeVerifier(): Promise<string> {
     const randomArray = new Uint8Array(96);
     this.crypto.getRandomValues(randomArray);
-    return Base64.fromUint8Array(randomArray, true);
+    return toURLSafeBase64(randomArray);
   }
 
   public async getCodeChallenge(code: string, method: 'plain' | 'S256'): Promise<string> {
@@ -56,8 +67,7 @@ export class BrowserCryptoHelper implements ICryptoHelper {
     if (method === 'S256') {
       const msgBuffer = new TextEncoder().encode(code);
       const hashBuffer = await this.crypto.subtle.digest('SHA-256', msgBuffer);
-      const base64Hash = Base64.fromUint8Array(new Uint8Array(hashBuffer), true);
-      return base64Hash;
+      return toURLSafeBase64(hashBuffer);
     }
 
     throw new CryptoHelperError(`Invalid method "${method}". Allowed methods are: plain, S256`);

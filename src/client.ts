@@ -1,6 +1,7 @@
-import axios, { Axios } from 'axios';
 import * as jose from 'jose';
+
 import { getCrypto, ICryptoHelper } from './crypto';
+import { getFetch } from './fetch';
 
 const serializeQueryString = (object: Record<string, string>): string => {
   const elements: string[] = [];
@@ -180,7 +181,7 @@ export class Fief {
 
   private encryptionKey?: jose.KeyLike | Uint8Array;
 
-  private client: Axios;
+  private fetch: typeof fetch;
 
   private openIDConfiguration?: Record<string, any>;
 
@@ -202,12 +203,7 @@ export class Fief {
       ;
     }
 
-    this.client = axios.create({
-      baseURL: this.baseURL,
-      ...this.clientSecret ? {
-        auth: { username: this.clientId, password: this.clientSecret },
-      } : {},
-    });
+    this.fetch = getFetch();
 
     this.crypto = getCrypto();
   }
@@ -300,15 +296,17 @@ export class Fief {
       ...codeVerifier ? { code_verifier: codeVerifier } : {},
     });
 
-    const { data } = await this.client.post<FiefTokenResponse>(
+    const response = await this.fetch(
       openIDConfiguration.token_endpoint,
-      payload,
       {
+        method: 'POST',
+        body: payload,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       },
     );
+    const data: FiefTokenResponse = await response.json();
 
     const userinfo = await this.decodeIDToken({
       idToken: data.id_token,
@@ -348,15 +346,17 @@ export class Fief {
       ...scope ? { scope: scope.join(' ') } : {},
     });
 
-    const { data } = await this.client.post<FiefTokenResponse>(
+    const response = await this.fetch(
       openIDConfiguration.token_endpoint,
-      payload,
       {
+        method: 'POST',
+        body: payload,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       },
     );
+    const data: FiefTokenResponse = await response.json();
 
     const userinfo = await this.decodeIDToken({
       idToken: data.id_token,
@@ -468,14 +468,16 @@ export class Fief {
    */
   public async userinfo(accessToken: string): Promise<FiefUserInfo> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const { data } = await this.client.get<FiefUserInfo>(
+    const response = await this.fetch(
       openIDConfiguration.userinfo_endpoint,
       {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       },
     );
+    const data: FiefUserInfo = await response.json();
     return data;
   }
 
@@ -511,16 +513,18 @@ export class Fief {
     data: Record<string, any>,
   ): Promise<FiefUserInfo> {
     const updateProfileEndpoint = `${this.baseURL}/api/profile`;
-
-    const { data: userinfo } = await this.client.patch<FiefUserInfo>(
+    const response = await this.fetch(
       updateProfileEndpoint,
       {
-        data,
+        method: 'PATCH',
+        body: JSON.stringify(data),
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
       },
     );
+    const userinfo = await response.json();
     return userinfo;
   }
 
@@ -553,7 +557,13 @@ export class Fief {
     if (this.openIDConfiguration !== undefined) {
       return this.openIDConfiguration;
     }
-    const { data } = await this.client.get<Record<string, any>>('/.well-known/openid-configuration');
+    const response = await this.fetch(
+      `${this.baseURL}/.well-known/openid-configuration`,
+      {
+        method: 'GET',
+      },
+    );
+    const data = response.json();
     this.openIDConfiguration = data;
     return data;
   }
@@ -563,7 +573,13 @@ export class Fief {
       return this.jwks;
     }
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const { data } = await this.client.get<jose.JSONWebKeySet>(openIDConfiguration.jwks_uri);
+    const response = await this.fetch(
+      openIDConfiguration.jwks_uri,
+      {
+        method: 'GET',
+      },
+    );
+    const data: jose.JSONWebKeySet = await response.json();
     this.jwks = data;
     return data;
   }

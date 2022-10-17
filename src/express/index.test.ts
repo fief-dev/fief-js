@@ -1,6 +1,6 @@
 /* eslint-disable class-methods-use-this */
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+import fetchMock from 'fetch-mock';
+
 import express, { Express, Request, Response } from 'express';
 import session from 'express-session';
 import request from 'supertest';
@@ -10,7 +10,8 @@ import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
 import { createMiddleware } from './index';
 import { authorizationBearerGetter, IUserInfoCache } from '../server';
 
-const axiosMock = new MockAdapter(axios);
+const mockFetch = fetchMock.sandbox();
+jest.mock('../fetch/index', () => ({ getFetch: () => mockFetch }));
 
 const HOSTNAME = 'https://bretagne.fief.dev';
 const fief = new Fief({
@@ -83,38 +84,34 @@ const testApp = (): Express => {
   return app;
 };
 
-let userinfoMock: MockAdapter;
+beforeEach(() => {
+  mockFetch.reset();
 
-beforeAll(async () => {
-  axiosMock.onGet('/.well-known/openid-configuration').reply(
-    200,
-    {
+  mockFetch.get('path:/.well-known/openid-configuration', {
+    status: 200,
+    body: {
       authorization_endpoint: `${HOSTNAME}/authorize`,
       token_endpoint: `${HOSTNAME}/token`,
       userinfo_endpoint: `${HOSTNAME}/userinfo`,
       jwks_uri: `${HOSTNAME}/.well-known/jwks.json`,
     },
-  );
+  });
 
-  axiosMock.onGet('/.well-known/jwks.json').reply(
-    200,
-    {
+  mockFetch.get('path:/.well-known/jwks.json', {
+    status: 200,
+    body: {
       keys: [signatureKeyPublic],
     },
-  );
+  });
 
-  userinfoMock = axiosMock.onGet('/userinfo').reply(200, { sub: userId });
-});
-
-beforeEach(() => {
-  userinfoMock.resetHistory();
+  mockFetch.get('path:/userinfo', { status: 200, body: { sub: userId } });
 });
 
 describe('fiefAuth', () => {
   it('should return 401 if no Authorization header', async () => {
     const response = await request(testApp())
       .get('/authenticated')
-    ;
+      ;
     expect(response.statusCode).toEqual(401);
   });
 
@@ -122,7 +119,7 @@ describe('fiefAuth', () => {
     const response = await request(testApp())
       .get('/authenticated')
       .set('Authorization', 'TOKEN')
-    ;
+      ;
     expect(response.statusCode).toEqual(401);
   });
 
@@ -131,7 +128,7 @@ describe('fiefAuth', () => {
     const response = await request(testApp())
       .get('/authenticated')
       .set('Authorization', `Bearer ${accessToken}`)
-    ;
+      ;
     expect(response.statusCode).toEqual(401);
   });
 
@@ -140,7 +137,7 @@ describe('fiefAuth', () => {
     const response = await request(testApp())
       .get('/authenticated')
       .set('Authorization', `Bearer ${accessToken}`)
-    ;
+      ;
     expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual({
       id: userId,
@@ -154,7 +151,7 @@ describe('fiefAuth', () => {
     it('should not throw 401 if no token', async () => {
       const response = await request(testApp())
         .get('/authenticated-optional')
-      ;
+        ;
       expect(response.statusCode).toEqual(200);
       expect(response.body).toEqual({});
     });
@@ -164,7 +161,7 @@ describe('fiefAuth', () => {
       const response = await request(testApp())
         .get('/authenticated-optional')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(response.statusCode).toEqual(200);
       expect(response.body).toEqual({
         id: userId,
@@ -181,7 +178,7 @@ describe('fiefAuth', () => {
       const response = await request(testApp())
         .get('/authenticated-scope')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(response.statusCode).toEqual(403);
     });
 
@@ -190,7 +187,7 @@ describe('fiefAuth', () => {
       const response = await request(testApp())
         .get('/authenticated-scope')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(response.statusCode).toEqual(200);
       expect(response.body).toEqual({
         id: userId,
@@ -207,7 +204,7 @@ describe('fiefAuth', () => {
       const response = await request(testApp())
         .get('/authenticated-permission')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(response.statusCode).toEqual(403);
     });
 
@@ -216,7 +213,7 @@ describe('fiefAuth', () => {
       const response = await request(testApp())
         .get('/authenticated-permission')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(response.statusCode).toEqual(200);
       expect(response.body).toEqual({
         id: userId,
@@ -235,7 +232,7 @@ describe('fiefAuth', () => {
       const responseFirst = await request(app)
         .get('/current-user')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(responseFirst.statusCode).toEqual(200);
       expect(responseFirst.body).toEqual({ sub: userId });
 
@@ -245,11 +242,11 @@ describe('fiefAuth', () => {
         .get('/current-user')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('Cookie', sessionCookie)
-      ;
+        ;
       expect(responseSecond.statusCode).toEqual(200);
       expect(responseSecond.body).toEqual({ sub: userId });
 
-      expect(userinfoMock.history.get.length).toEqual(1);
+      expect(mockFetch.calls('path:/userinfo').length).toEqual(1);
     });
 
     it('should always get userinfo from API if refresh', async () => {
@@ -259,7 +256,7 @@ describe('fiefAuth', () => {
       const responseFirst = await request(app)
         .get('/current-user-refresh')
         .set('Authorization', `Bearer ${accessToken}`)
-      ;
+        ;
       expect(responseFirst.statusCode).toEqual(200);
       expect(responseFirst.body).toEqual({ sub: userId });
 
@@ -269,11 +266,11 @@ describe('fiefAuth', () => {
         .get('/current-user-refresh')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('Cookie', sessionCookie)
-      ;
+        ;
       expect(responseSecond.statusCode).toEqual(200);
       expect(responseSecond.body).toEqual({ sub: userId });
 
-      expect(userinfoMock.history.get.length).toEqual(2);
+      expect(mockFetch.calls('path:/userinfo').length).toEqual(2);
     });
   });
 });

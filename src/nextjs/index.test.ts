@@ -1,6 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+import fetchMock from 'fetch-mock';
 import { IncomingMessage, OutgoingMessage } from 'http';
 import httpMocks from 'node-mocks-http';
 import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from 'next';
@@ -10,7 +9,8 @@ import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
 import { FiefAuth } from './index';
 import { AuthenticateRequestResult, authorizationBearerGetter, IUserInfoCache } from '../server';
 
-const axiosMock = new MockAdapter(axios);
+const mockFetch = fetchMock.sandbox();
+jest.mock('../fetch/index', () => ({ getFetch: () => mockFetch }));
 
 const HOSTNAME = 'https://bretagne.fief.dev';
 const fief = new Fief({
@@ -65,8 +65,6 @@ const fiefAuth = new FiefAuth({
   redirectURI: 'http://localhost:3000/callback',
 });
 
-let userinfoMock: MockAdapter;
-
 const getMockContext = (
   reqOptions?: httpMocks.RequestOptions,
   resOptions?: httpMocks.ResponseOptions,
@@ -99,30 +97,28 @@ const getMockAPIContext = (
 
 const getMockNextAPIHandler = (): any => jest.fn((req: NextApiRequest, res: NextApiResponse) => res.status(200).send('OK'));
 
-beforeAll(async () => {
-  axiosMock.onGet('/.well-known/openid-configuration').reply(
-    200,
-    {
+beforeEach(async () => {
+  await userInfoCache.clear(jest.fn() as any, jest.fn() as any);
+  mockFetch.reset();
+
+  mockFetch.get('path:/.well-known/openid-configuration', {
+    status: 200,
+    body: {
       authorization_endpoint: `${HOSTNAME}/authorize`,
       token_endpoint: `${HOSTNAME}/token`,
       userinfo_endpoint: `${HOSTNAME}/userinfo`,
       jwks_uri: `${HOSTNAME}/.well-known/jwks.json`,
     },
-  );
+  });
 
-  axiosMock.onGet('/.well-known/jwks.json').reply(
-    200,
-    {
+  mockFetch.get('path:/.well-known/jwks.json', {
+    status: 200,
+    body: {
       keys: [signatureKeyPublic],
     },
-  );
+  });
 
-  userinfoMock = axiosMock.onGet('/userinfo').reply(200, { sub: userId });
-});
-
-beforeEach(async () => {
-  await userInfoCache.clear(jest.fn() as any, jest.fn() as any);
-  userinfoMock.resetHistory();
+  mockFetch.get('path:/userinfo', { status: 200, body: { sub: userId } });
 });
 
 describe('withAuth', () => {
@@ -269,7 +265,7 @@ describe('withAuth', () => {
       // @ts-ignore
       expect(secondResult.props.user).toEqual({ sub: userId });
 
-      expect(userinfoMock.history.get.length).toEqual(1);
+      expect(mockFetch.calls('path:/userinfo').length).toEqual(1);
     });
 
     it('should always get userinfo from API if refresh', async () => {
@@ -290,7 +286,7 @@ describe('withAuth', () => {
       // @ts-ignore
       expect(secondResult.props.user).toEqual({ sub: userId });
 
-      expect(userinfoMock.history.get.length).toEqual(2);
+      expect(mockFetch.calls('path:/userinfo').length).toEqual(2);
     });
   });
 });
@@ -410,7 +406,7 @@ describe('authenticated', () => {
       await fiefAuth.authenticated(getMockNextAPIHandler())(secondReq, secondRes);
       expect(secondReq.user).toEqual({ sub: userId });
 
-      expect(userinfoMock.history.get.length).toEqual(1);
+      expect(mockFetch.calls('path:/userinfo').length).toEqual(1);
     });
 
     it('should always get userinfo from API if refresh', async () => {
@@ -429,7 +425,7 @@ describe('authenticated', () => {
       )(secondReq, secondRes);
       expect(secondReq.user).toEqual({ sub: userId });
 
-      expect(userinfoMock.history.get.length).toEqual(2);
+      expect(mockFetch.calls('path:/userinfo').length).toEqual(2);
     });
   });
 });

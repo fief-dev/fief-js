@@ -1,5 +1,4 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+import fetchMock from 'fetch-mock';
 
 import {
   Fief,
@@ -14,7 +13,8 @@ import {
 } from '../tests/utils';
 import { getCrypto } from './crypto';
 
-const axiosMock = new MockAdapter(axios);
+const mockFetch = fetchMock.sandbox();
+jest.mock('./fetch/index', () => ({ getFetch: () => mockFetch }));
 
 const HOSTNAME = 'https://bretagne.fief.dev';
 const fief = new Fief({
@@ -40,23 +40,27 @@ beforeAll(async () => {
   accessToken = await generateToken(false);
   signedIdToken = await generateToken(false);
   encryptedIdToken = await generateToken(true);
+});
 
-  axiosMock.onGet('/.well-known/openid-configuration').reply(
-    200,
-    {
+beforeEach(() => {
+  mockFetch.reset();
+
+  mockFetch.get('path:/.well-known/openid-configuration', {
+    status: 200,
+    body: {
       authorization_endpoint: `${HOSTNAME}/authorize`,
       token_endpoint: `${HOSTNAME}/token`,
       userinfo_endpoint: `${HOSTNAME}/userinfo`,
       jwks_uri: `${HOSTNAME}/.well-known/jwks.json`,
     },
-  );
+  });
 
-  axiosMock.onGet('/.well-known/jwks.json').reply(
-    200,
-    {
+  mockFetch.get('path:/.well-known/jwks.json', {
+    status: 200,
+    body: {
       keys: [signatureKeyPublic],
     },
-  );
+  });
 });
 
 describe('getAuthURL', () => {
@@ -78,14 +82,14 @@ describe('getAuthURL', () => {
 
 describe('authCallback', () => {
   it('should validate and decode signed ID token', async () => {
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: accessToken,
         id_token: signedIdToken,
         token_type: 'bearer',
       },
-    );
+    });
 
     const [tokenResponse, userinfo] = await fief.authCallback('CODE', 'https://www.bretagne.duchy/callback');
     expect(tokenResponse.access_token).toBe(accessToken);
@@ -95,14 +99,14 @@ describe('authCallback', () => {
   });
 
   it('should validate and decode encrypted ID token', async () => {
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: accessToken,
         id_token: encryptedIdToken,
         token_type: 'bearer',
       },
-    );
+    });
 
     const [tokenResponse, userinfo] = await fiefEncryptionKey.authCallback('CODE', 'https://www.bretagne.duchy/callback');
     expect(tokenResponse.access_token).toBe(accessToken);
@@ -112,14 +116,14 @@ describe('authCallback', () => {
   });
 
   it('should reject invalid ID token', async () => {
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: accessToken,
         id_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         token_type: 'bearer',
       },
-    );
+    });
 
     expect.assertions(1);
     try {
@@ -130,14 +134,14 @@ describe('authCallback', () => {
   });
 
   it('should reject encrypted ID token without encryption key', async () => {
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: accessToken,
         id_token: encryptedIdToken,
         token_type: 'bearer',
       },
-    );
+    });
 
     expect.assertions(1);
     try {
@@ -156,14 +160,14 @@ describe('authCallback', () => {
       { c_hash: codeValidationHash, at_hash: accessTokenValidationHash },
     );
 
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: 'ACCESS_TOKEN',
         id_token: idToken,
         token_type: 'bearer',
       },
-    );
+    });
 
     const [tokenResponse, userinfo] = await fief.authCallback('CODE', 'https://www.bretagne.duchy/callback');
     expect(tokenResponse.access_token).toBe('ACCESS_TOKEN');
@@ -181,14 +185,14 @@ describe('authCallback', () => {
       { c_hash: codeValidationHash, at_hash: accessTokenValidationHash },
     );
 
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: 'ACCESS_TOKEN',
         id_token: idToken,
         token_type: 'bearer',
       },
-    );
+    });
 
     expect.assertions(1);
     try {
@@ -201,14 +205,14 @@ describe('authCallback', () => {
 
 describe('authRefreshToken', () => {
   it('should validate and decode signed ID token', async () => {
-    axiosMock.onPost('/token').reply(
-      200,
-      {
+    mockFetch.post('path:/token', {
+      status: 200,
+      body: {
         access_token: accessToken,
         id_token: signedIdToken,
         token_type: 'bearer',
       },
-    );
+    });
 
     const [tokenResponse, userinfo] = await fief.authRefreshToken('REFRESH_TOKEN', ['openid', 'offline_access']);
     expect(tokenResponse.access_token).toBe(accessToken);
@@ -297,7 +301,7 @@ describe('validateAccessToken', () => {
 
 describe('userinfo', () => {
   it('should return data from userinfo endpoint', async () => {
-    axiosMock.onGet('/userinfo').reply(200, { sub: userId });
+    mockFetch.get('path:/userinfo', { status: 200, body: { sub: userId } });
 
     const userinfo = await fief.userinfo('ACCESS_TOKEN');
     expect(userinfo).toStrictEqual({ sub: userId });
@@ -306,7 +310,7 @@ describe('userinfo', () => {
 
 describe('updateProfile', () => {
   it('should return data from userinfo endpoint', async () => {
-    axiosMock.onPatch('/api/profile').reply(200, { sub: userId });
+    mockFetch.patch('path:/api/profile', { status: 200, body: { sub: userId } });
 
     const userinfo = await fief.updateProfile('ACCESS_TOKEN', { email: 'anne@bretagne.duchy' });
     expect(userinfo).toStrictEqual({ sub: userId });

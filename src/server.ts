@@ -251,9 +251,12 @@ export const cookieGetter = (cookieName: string): TokenGetter<IncomingMessage> =
   if (cookieHeader === undefined) {
     return null;
   }
-  const cookies = cookieHeader.split('; ');
+  const cookies = cookieHeader.split(';');
   for (let i = 0; i < cookies.length; i += 1) {
-    const [name, value] = cookies[i].split('=', 1);
+    const cookie = cookies[i].trim();
+    const semicolonIndex = cookie.indexOf('=');
+    const name = cookie.slice(0, semicolonIndex);
+    const value = cookie.slice(semicolonIndex + 1);
     if (name === cookieName) {
       return value;
     }

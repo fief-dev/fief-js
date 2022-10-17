@@ -8,9 +8,15 @@ import { NodeJSCryptoHelper } from './node';
  * @returns A {@link ICryptoHelper}
  */
 export const getCrypto = (): ICryptoHelper => {
-  // Browser
-  // eslint-disable-next-line no-restricted-globals
-  if (typeof window !== 'undefined' || typeof self !== 'undefined') {
+  // Browser and workers
+  if (
+    typeof window !== 'undefined'
+    // eslint-disable-next-line no-restricted-globals
+    || typeof self !== 'undefined'
+    // @ts-ignore
+    // eslint-disable-next-line no-undef
+    || (typeof EdgeRuntime !== 'undefined' && EdgeRuntime === 'vercel')
+  ) {
     return new BrowserCryptoHelper();
   }
 

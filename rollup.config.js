@@ -18,10 +18,10 @@ export default [
     },
     plugins: [
       {
-        name: 'Resolve to browser-only Axios',
+        name: 'Fake node-fetch in browser build',
         resolveId: (source, _importer, _options) => {
-          if (source === 'axios') {
-            return './node_modules/axios/dist/axios.js';
+          if (source === 'node-fetch') {
+            return './src/fetch/node-fetch-fake.ts';
           }
           return null;
         },
