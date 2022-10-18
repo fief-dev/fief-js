@@ -70,6 +70,7 @@
   "dependencies": {
     "encoding": "^0.1.13",
     "jose": "^4.6.0",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "path-to-regexp": "^6.2.1"
   }
 }

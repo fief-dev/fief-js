@@ -1,7 +1,6 @@
-/* eslint-disable class-methods-use-this */
 import fetchMock from 'fetch-mock';
 
-import express, { Express, Request, Response } from 'express';
+import express, { Express } from 'express';
 import session from 'express-session';
 import request from 'supertest';
 
@@ -20,37 +19,40 @@ const fief = new Fief({
   clientSecret: 'CLIENT_SECRET',
 });
 
-class UserInfoCache implements IUserInfoCache<Request, Response> {
-  async get(id: string, req: Request, _res: Response): Promise<FiefUserInfo | null> {
-    // @ts-ignore
-    const userinfo = req.session[`userinfo-${id}`];
+class UserInfoCache implements IUserInfoCache {
+  private storage: Record<string, any>;
+
+  constructor() {
+    this.storage = {};
+  }
+
+  async get(id: string): Promise<FiefUserInfo | null> {
+    const userinfo = this.storage[id];
     if (userinfo) {
       return userinfo;
     }
     return null;
   }
 
-  async set(id: string, userinfo: FiefUserInfo, req: Request, _res: Response): Promise<void> {
-    // @ts-ignore
-    req.session[`userinfo-${id}`] = userinfo;
+  async set(id: string, userinfo: FiefUserInfo): Promise<void> {
+    this.storage[id] = userinfo;
   }
 
-  async remove(id: string, req: Request, _res: Response): Promise<void> {
-    // @ts-ignore
-    req.session[`userinfo-${id}`] = undefined;
+  async remove(id: string): Promise<void> {
+    this.storage[id] = undefined;
   }
 
-  async clear(req: Request, _res: Response): Promise<void> {
-    return new Promise((resolve) => {
-      req.session.destroy(resolve);
-    });
+  async clear(): Promise<void> {
+    this.storage = {};
   }
 }
+
+const userInfoCache = new UserInfoCache();
 
 const fiefAuthMiddleware = createMiddleware({
   client: fief,
   tokenGetter: authorizationBearerGetter(),
-  userInfoCache: new UserInfoCache(),
+  userInfoCache,
 });
 
 const testApp = (): Express => {
@@ -84,7 +86,8 @@ const testApp = (): Express => {
   return app;
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await userInfoCache.clear();
   mockFetch.reset();
 
   mockFetch.get('path:/.well-known/openid-configuration', {
@@ -236,12 +239,9 @@ describe('fiefAuth', () => {
       expect(responseFirst.statusCode).toEqual(200);
       expect(responseFirst.body).toEqual({ sub: userId });
 
-      const sessionCookie = responseFirst.headers['set-cookie'][0].split(';')[0];
-
       const responseSecond = await request(app)
         .get('/current-user')
         .set('Authorization', `Bearer ${accessToken}`)
-        .set('Cookie', sessionCookie)
         ;
       expect(responseSecond.statusCode).toEqual(200);
       expect(responseSecond.body).toEqual({ sub: userId });
@@ -260,12 +260,9 @@ describe('fiefAuth', () => {
       expect(responseFirst.statusCode).toEqual(200);
       expect(responseFirst.body).toEqual({ sub: userId });
 
-      const sessionCookie = responseFirst.headers['set-cookie'][0].split(';')[0];
-
       const responseSecond = await request(app)
         .get('/current-user-refresh')
         .set('Authorization', `Bearer ${accessToken}`)
-        .set('Cookie', sessionCookie)
         ;
       expect(responseSecond.statusCode).toEqual(200);
       expect(responseSecond.body).toEqual({ sub: userId });

@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { IncomingMessage, OutgoingMessage } from 'http';
+import { IncomingMessage } from 'http';
 
 import {
   Fief,
@@ -27,68 +27,42 @@ export class FiefAuthForbidden extends FiefAuthError { }
  *
  * @returns An access token or `null`.
  */
-export type TokenGetter<RQ extends IncomingMessage> = (req: RQ) => Promise<string | null>;
+export type TokenGetter<RQ> = (req: RQ) => Promise<string | null>;
 
 /**
  * Interface that should follow a class to implement cache for user data.
  */
-export interface IUserInfoCache<RQ extends IncomingMessage, RS extends OutgoingMessage> {
+export interface IUserInfoCache {
   /**
    * Retrieve user information from cache, if available.
    *
    * @param id - ID of the user to retrieve the user information for.
-   * @param req - A NodeJS request object.
-   * @param res - A NodeJS response object.
    *
    * @returns User information or `null`.
    */
-  get(
-    id: string,
-    req: RQ,
-    res: RS,
-  ): Promise<FiefUserInfo | null>;
+  get(id: string): Promise<FiefUserInfo | null>;
 
   /**
    * Store user information in cache.
    *
    * @param id - ID of the user to store user information for.
    * @param userinfo - The user information to store.
-   * @param req - A NodeJS request object.
-   * @param res - A NodeJS response object.
    *
    */
-  set(
-    id: string,
-    userinfo: FiefUserInfo,
-    req: RQ,
-    res: RS,
-  ): Promise<void>;
+  set(id: string, userinfo: FiefUserInfo): Promise<void>;
 
   /**
    * Remove user information from cache.
    *
    * @param id - ID of the user to remove the user information for.
-   * @param req - A NodeJS request object.
-   * @param res - A NodeJS response object.
    *
    */
-  remove(
-    id: string,
-    req: RQ,
-    res: RS,
-  ): Promise<void>;
+  remove(id: string): Promise<void>;
 
   /**
    * Clear all the user information from cache.
-   *
-   * @param req - A NodeJS request object.
-   * @param res - A NodeJS response object.
-   *
    */
-  clear(
-    req: RQ,
-    res: RS,
-  ): Promise<void>;
+  clear(): Promise<void>;
 }
 
 /**
@@ -140,19 +114,19 @@ export interface AuthenticateRequestResult {
 /**
  * Class implementing common logic for authenticating requests in NodeJS servers.
  */
-export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
+export class FiefAuth<RQ> {
   private client: Fief;
 
   private tokenGetter: TokenGetter<RQ>;
 
-  private userInfoCache?: IUserInfoCache<RQ, RS>;
+  private userInfoCache?: IUserInfoCache;
 
   /**
    * @param client - Instance of a {@link Fief} client.
    * @param tokenGetter - A {@link TokenGetter} function.
    * @param userInfoCache - An instance of a {@link IUserInfoCache} class.
    */
-  constructor(client: Fief, tokenGetter: TokenGetter<RQ>, userInfoCache?: IUserInfoCache<RQ, RS>) {
+  constructor(client: Fief, tokenGetter: TokenGetter<RQ>, userInfoCache?: IUserInfoCache) {
     this.client = client;
     this.tokenGetter = tokenGetter;
     this.userInfoCache = userInfoCache;
@@ -166,10 +140,7 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
    * @returns A handler to authenticate NodeJS requests.
    */
   public authenticate(parameters: AuthenticateRequestParameters) {
-    return async (
-      req: RQ,
-      res: RS,
-    ): Promise<AuthenticateRequestResult> => {
+    return async (req: RQ): Promise<AuthenticateRequestResult> => {
       const {
         optional,
         scope,
@@ -189,10 +160,10 @@ export class FiefAuth<RQ extends IncomingMessage, RS extends OutgoingMessage> {
         try {
           accessTokenInfo = await this.client.validateAccessToken(token, scope, permissions);
           if (this.userInfoCache) {
-            user = await this.userInfoCache.get(accessTokenInfo.id, req, res);
+            user = await this.userInfoCache.get(accessTokenInfo.id);
             if (user === null || refresh === true) {
               user = await this.client.userinfo(accessTokenInfo.access_token);
-              await this.userInfoCache.set(accessTokenInfo.id, user, req, res);
+              await this.userInfoCache.set(accessTokenInfo.id, user);
             }
           }
         } catch (err) {

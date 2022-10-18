@@ -1,36 +1,30 @@
-/* eslint-disable class-methods-use-this */
-import fetchMock from 'fetch-mock';
-import { IncomingMessage, OutgoingMessage } from 'http';
 import httpMocks from 'node-mocks-http';
 import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest } from 'next/server';
 
-import { Fief, FiefUserInfo } from '../client';
-import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
+import {
+  Fief,
+  FiefAccessTokenInfo,
+  FiefTokenResponse,
+  FiefUserInfo,
+} from '../client';
+import { userId } from '../../tests/utils';
 import { FiefAuth } from './index';
-import { AuthenticateRequestResult, authorizationBearerGetter, IUserInfoCache } from '../server';
+import {
+  AuthenticateRequestResult,
+  FiefAuthForbidden,
+  FiefAuthUnauthorized,
+  IUserInfoCache,
+} from '../server';
 
-const mockFetch = fetchMock.sandbox();
-jest.mock('../fetch/index', () => ({ getFetch: () => mockFetch }));
-
-const HOSTNAME = 'https://bretagne.fief.dev';
-const fief = new Fief({
-  baseURL: HOSTNAME,
-  clientId: 'CLIENT_ID',
-  clientSecret: 'CLIENT_SECRET',
-});
-
-class UserInfoCache implements IUserInfoCache<IncomingMessage, OutgoingMessage> {
+class UserInfoCache implements IUserInfoCache {
   private storage: Record<string, any>;
 
   constructor() {
     this.storage = {};
   }
 
-  async get(
-    id: string,
-    _req: IncomingMessage,
-    _res: OutgoingMessage,
-  ): Promise<FiefUserInfo | null> {
+  async get(id: string): Promise<FiefUserInfo | null> {
     const userinfo = this.storage[id];
     if (userinfo) {
       return userinfo;
@@ -38,31 +32,54 @@ class UserInfoCache implements IUserInfoCache<IncomingMessage, OutgoingMessage> 
     return null;
   }
 
-  async set(
-    id: string,
-    userinfo: FiefUserInfo,
-    _req: IncomingMessage,
-    _res: OutgoingMessage,
-  ): Promise<void> {
+  async set(id: string, userinfo: FiefUserInfo): Promise<void> {
     this.storage[id] = userinfo;
   }
 
-  async remove(id: string, _req: IncomingMessage, _res: OutgoingMessage): Promise<void> {
+  async remove(id: string): Promise<void> {
     this.storage[id] = undefined;
   }
 
-  async clear(_req: IncomingMessage, _res: OutgoingMessage): Promise<void> {
+  async clear(): Promise<void> {
     this.storage = {};
   }
 }
 
 const userInfoCache = new UserInfoCache();
 
+const tokenInfo: FiefTokenResponse = {
+  access_token: 'ACCESS_TOKEN',
+  expires_in: 3600,
+  id_token: 'ID_TOKEN',
+  token_type: 'bearer',
+};
+const authCallbackMock = jest.fn(() => [tokenInfo, { sub: userId }]);
+
+const accessTokenInfo: FiefAccessTokenInfo = {
+  id: userId,
+  scope: ['openid'],
+  permissions: [],
+  access_token: 'ACCESS_TOKEN',
+};
+const validateAccessTokenMock = jest.fn(() => accessTokenInfo);
+
+const userInfoMock = jest.fn(() => ({ sub: userId }));
+
+// @ts-ignore
+const fiefMock = jest.fn<Fief, any>(() => ({
+  getAuthURL: () => 'https://bretagne.fief.dev/authorize',
+  getLogoutURL: () => 'https://bretagne.fief.dev/logout',
+  authCallback: authCallbackMock,
+  validateAccessToken: validateAccessTokenMock,
+  userinfo: userInfoMock,
+}));
+
 const fiefAuth = new FiefAuth({
-  client: fief,
-  tokenGetter: authorizationBearerGetter(),
+  client: fiefMock(),
+  sessionCookieName: 'user_session',
   userInfoCache,
   redirectURI: 'http://localhost:3000/callback',
+  logoutRedirectURI: 'http://localhost:3000',
 });
 
 const getMockContext = (
@@ -98,64 +115,149 @@ const getMockAPIContext = (
 const getMockNextAPIHandler = (): any => jest.fn((req: NextApiRequest, res: NextApiResponse) => res.status(200).send('OK'));
 
 beforeEach(async () => {
-  await userInfoCache.clear(jest.fn() as any, jest.fn() as any);
-  mockFetch.reset();
+  await userInfoCache.clear();
+  userInfoMock.mockClear();
+});
 
-  mockFetch.get('path:/.well-known/openid-configuration', {
-    status: 200,
-    body: {
-      authorization_endpoint: `${HOSTNAME}/authorize`,
-      token_endpoint: `${HOSTNAME}/token`,
-      userinfo_endpoint: `${HOSTNAME}/userinfo`,
-      jwks_uri: `${HOSTNAME}/.well-known/jwks.json`,
+describe('middleware', () => {
+  const middleware = fiefAuth.middleware([
+    {
+      matcher: '/authenticated',
+      parameters: {},
     },
+    {
+      matcher: '/authenticated-optional',
+      parameters: {
+        optional: true,
+      },
+    },
+    {
+      matcher: '/authenticated-scope',
+      parameters: {
+        scope: ['required_scope'],
+      },
+    },
+  ]);
+
+  describe('callback', () => {
+    it('should handle authentication callback and redirect to default if no returnTo cookie', async () => {
+      const request = new NextRequest('http://localhost:3000/callback');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('http://localhost:3000/');
+
+      expect(response.cookies.get('user_session')).toEqual('ACCESS_TOKEN');
+    });
+
+    it('should handle authentication callback and redirect to page set in returnTo cookie', async () => {
+      const request = new NextRequest('http://localhost:3000/callback');
+      request.cookies.set('return_to', '/return-to');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('http://localhost:3000/return-to');
+
+      expect(response.cookies.get('user_session')).toEqual('ACCESS_TOKEN');
+    });
   });
 
-  mockFetch.get('path:/.well-known/jwks.json', {
-    status: 200,
-    body: {
-      keys: [signatureKeyPublic],
-    },
+  describe('logout', () => {
+    it('should clear session cookie and redirect to Fief logout URL', async () => {
+      const request = new NextRequest('http://localhost:3000/logout');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/logout');
+
+      expect(response.cookies.get('user_session')).toEqual('');
+    });
   });
 
-  mockFetch.get('path:/userinfo', { status: 200, body: { sub: userId } });
+  describe('authentication', () => {
+    it('should redirect to Fief authentication URL if no cookie', async () => {
+      const request = new NextRequest('http://localhost:3000/authenticated');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/authorize');
+
+      expect(response.cookies.get('return_to')).toEqual('/authenticated');
+    });
+
+    it('should redirect to Fief authentication URL if expired token', async () => {
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthUnauthorized() as never);
+      const request = new NextRequest('http://localhost:3000/authenticated');
+      request.cookies.set('user_session', 'ACCESS_TOKEN');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/authorize');
+
+      expect(response.cookies.get('return_to')).toEqual('/authenticated');
+    });
+
+    it('should return the default response if valid token', async () => {
+      const request = new NextRequest('http://localhost:3000/authenticated');
+      request.cookies.set('user_session', 'ACCESS_TOKEN');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should return the default response if no token on optional route', async () => {
+      const request = new NextRequest('http://localhost:3000/authenticated-optional');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should rewrite to the forbidden page if missing scope or permission', async () => {
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthForbidden() as never);
+      const request = new NextRequest('http://localhost:3000/authenticated-scope');
+      request.cookies.set('user_session', 'ACCESS_TOKEN');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-middleware-rewrite')).toEqual('http://localhost:3000/forbidden');
+    });
+  });
 });
 
 describe('withAuth', () => {
-  it('should return a redirection response if no Authorization header', async () => {
+  it('should return a redirection response if no cookie', async () => {
     const context = getMockContext({ method: 'GET' });
     const result = await fiefAuth.withAuth(getMockGetServerSideProps())(context);
 
     // @ts-ignore
-    expect(result.redirect.destination).toMatch(`${HOSTNAME}/authorize`);
+    expect(result.redirect.destination).toMatch('https://bretagne.fief.dev/authorize');
     // @ts-ignore
     expect(result.redirect.permanent).toEqual(false);
   });
 
-  it('should return a redirection response if invalid Authorization header', async () => {
-    const context = getMockContext({ method: 'GET', headers: { authorization: 'TOKEN' } });
+  it('should return a redirection response if no matching cookie', async () => {
+    const context = getMockContext({ method: 'GET', headers: { cookie: 'foo=bar' } });
     const result = await fiefAuth.withAuth(getMockGetServerSideProps())(context);
 
     // @ts-ignore
-    expect(result.redirect.destination).toMatch(`${HOSTNAME}/authorize`);
+    expect(result.redirect.destination).toMatch('https://bretagne.fief.dev/authorize');
     // @ts-ignore
     expect(result.redirect.permanent).toEqual(false);
   });
 
   it('should return a redirection response if expired token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] }, 0);
-    const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+    validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthUnauthorized() as never);
+    const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
     const result = await fiefAuth.withAuth(getMockGetServerSideProps())(context);
 
     // @ts-ignore
-    expect(result.redirect.destination).toMatch(`${HOSTNAME}/authorize`);
+    expect(result.redirect.destination).toMatch('https://bretagne.fief.dev/authorize');
     // @ts-ignore
     expect(result.redirect.permanent).toEqual(false);
   });
 
   it('should set accessTokenInfo in props if valid token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-    const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+    const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
     const result = await fiefAuth.withAuth(getMockGetServerSideProps())(context);
 
     // @ts-ignore
@@ -163,13 +265,12 @@ describe('withAuth', () => {
       id: userId,
       scope: ['openid'],
       permissions: [],
-      access_token: accessToken,
+      access_token: 'ACCESS_TOKEN',
     });
   });
 
   it('should set accessTokenInfo in props if valid token with async getServerSideProps', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-    const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+    const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
     const result = await fiefAuth.withAuth(getMockGetServerSidePropsPromise())(context);
 
     // @ts-ignore
@@ -177,13 +278,12 @@ describe('withAuth', () => {
       id: userId,
       scope: ['openid'],
       permissions: [],
-      access_token: accessToken,
+      access_token: 'ACCESS_TOKEN',
     });
   });
 
   it('should return raw response with getServerSideProps not returning props', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-    const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+    const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
     const result = await fiefAuth.withAuth(getMockGetServerSidePropsRedirectResult())(context);
 
     // @ts-ignore
@@ -192,8 +292,9 @@ describe('withAuth', () => {
 
   describe('scope', () => {
     it('should set forbidden in props if missing scope', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthForbidden() as never);
+      const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       const result = await fiefAuth.withAuth(
         getMockGetServerSideProps(),
         { scope: ['openid', 'required_scope'] },
@@ -204,8 +305,9 @@ describe('withAuth', () => {
     });
 
     it('should set accessTokenInfo in props if valid scope', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid required_scope', permissions: [] });
-      const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockImplementationOnce(() => ({ ...accessTokenInfo, scope: ['openid', 'required_scope'] }));
+      const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       const result = await fiefAuth.withAuth(
         getMockGetServerSideProps(),
         { scope: ['openid', 'required_scope'] },
@@ -216,15 +318,16 @@ describe('withAuth', () => {
         id: userId,
         scope: ['openid', 'required_scope'],
         permissions: [],
-        access_token: accessToken,
+        access_token: 'ACCESS_TOKEN',
       });
     });
   });
 
   describe('permission', () => {
     it('should set forbidden in props if missing permission', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read'] });
-      const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthForbidden() as never);
+      const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       const result = await fiefAuth.withAuth(
         getMockGetServerSideProps(),
         { permissions: ['castles:create'] },
@@ -235,8 +338,9 @@ describe('withAuth', () => {
     });
 
     it('should set accessTokenInfo in props if valid permission', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read', 'castles:create'] });
-      const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockImplementationOnce(() => ({ ...accessTokenInfo, permissions: ['castles:read', 'castles:create'] }));
+      const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       const result = await fiefAuth.withAuth(
         getMockGetServerSideProps(),
         { permissions: ['castles:create'] },
@@ -247,15 +351,14 @@ describe('withAuth', () => {
         id: userId,
         scope: ['openid'],
         permissions: ['castles:read', 'castles:create'],
-        access_token: accessToken,
+        access_token: 'ACCESS_TOKEN',
       });
     });
   });
 
   describe('user', () => {
     it('should get userinfo from API and set it in storage', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
       const firstResult = await fiefAuth.withAuth(getMockGetServerSideProps())(context);
 
       // @ts-ignore
@@ -265,12 +368,11 @@ describe('withAuth', () => {
       // @ts-ignore
       expect(secondResult.props.user).toEqual({ sub: userId });
 
-      expect(mockFetch.calls('path:/userinfo').length).toEqual(1);
+      expect(userInfoMock).toHaveBeenCalledTimes(1);
     });
 
     it('should always get userinfo from API if refresh', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const context = getMockContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const context = getMockContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
       const firstResult = await fiefAuth.withAuth(
         getMockGetServerSideProps(),
         { refresh: true },
@@ -279,153 +381,157 @@ describe('withAuth', () => {
       // @ts-ignore
       expect(firstResult.props.user).toEqual({ sub: userId });
 
-      const secondResult = await fiefAuth.withAuth(
+      await fiefAuth.withAuth(
         getMockGetServerSideProps(),
         { refresh: true },
       )(context);
-      // @ts-ignore
-      expect(secondResult.props.user).toEqual({ sub: userId });
 
-      expect(mockFetch.calls('path:/userinfo').length).toEqual(2);
+      expect(userInfoMock).toHaveBeenCalledTimes(2);
     });
   });
 });
 
 describe('authenticated', () => {
-  it('should return 401 if no Authorization header', async () => {
+  it('should return 401 if no cookie', async () => {
     const { req, res } = getMockAPIContext({ method: 'GET' });
+
     await fiefAuth.authenticated(getMockNextAPIHandler())(req, res);
 
     expect(res.statusCode).toEqual(401);
   });
 
-  it('should return 401 if invalid Authorization header', async () => {
-    const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: 'TOKEN' } });
+  it('should return 401 if no matching cookie', async () => {
+    const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'foo=bar' } });
+
     await fiefAuth.authenticated(getMockNextAPIHandler())(req, res);
 
     expect(res.statusCode).toEqual(401);
   });
 
   it('should return 401 if expired token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] }, 0);
-    const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+    validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthUnauthorized() as never);
+    const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
     await fiefAuth.authenticated(getMockNextAPIHandler())(req, res);
 
     expect(res.statusCode).toEqual(401);
   });
 
   it('should set accessTokenInfo in Request object if valid token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-    const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+    const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
     await fiefAuth.authenticated(getMockNextAPIHandler())(req, res);
 
     expect(req.accessTokenInfo).toEqual({
       id: userId,
       scope: ['openid'],
       permissions: [],
-      access_token: accessToken,
+      access_token: 'ACCESS_TOKEN',
     });
   });
 
   describe('optional', () => {
     it('should not throw 401 if no token', async () => {
       const { req, res } = getMockAPIContext({ method: 'GET' });
+
       await fiefAuth.authenticated(getMockNextAPIHandler(), { optional: true })(req, res);
 
       expect(res.statusCode).toEqual(200);
     });
 
     it('should set accessTokenInfo in Request object if valid token', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       await fiefAuth.authenticated(getMockNextAPIHandler(), { optional: true })(req, res);
 
       expect(req.accessTokenInfo).toEqual({
         id: userId,
         scope: ['openid'],
         permissions: [],
-        access_token: accessToken,
+        access_token: 'ACCESS_TOKEN',
       });
     });
   });
 
   describe('scope', () => {
     it('should throw 403 if missing scope', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthForbidden() as never);
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       await fiefAuth.authenticated(getMockNextAPIHandler(), { scope: ['required_scope'] })(req, res);
 
       expect(res.statusCode).toEqual(403);
     });
 
     it('should set accessTokenInfo in Request object if valid scope', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid required_scope', permissions: [] });
-      const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockImplementationOnce(() => ({ ...accessTokenInfo, scope: ['openid', 'required_scope'] }));
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       await fiefAuth.authenticated(getMockNextAPIHandler(), { scope: ['required_scope'] })(req, res);
 
       expect(req.accessTokenInfo).toEqual({
         id: userId,
         scope: ['openid', 'required_scope'],
         permissions: [],
-        access_token: accessToken,
+        access_token: 'ACCESS_TOKEN',
       });
     });
   });
 
   describe('permission', () => {
     it('should throw 403 if missing permission', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read'] });
-      const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAuthForbidden() as never);
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       await fiefAuth.authenticated(getMockNextAPIHandler(), { permissions: ['castles:create'] })(req, res);
 
       expect(res.statusCode).toEqual(403);
     });
 
     it('should set accessTokenInfo in Request object if valid permission', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read', 'castles:create'] });
-      const { req, res } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      validateAccessTokenMock.mockImplementationOnce(() => ({ ...accessTokenInfo, permissions: ['castles:read', 'castles:create'] }));
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
       await fiefAuth.authenticated(getMockNextAPIHandler(), { permissions: ['castles:create'] })(req, res);
 
       expect(req.accessTokenInfo).toEqual({
         id: userId,
         scope: ['openid'],
         permissions: ['castles:read', 'castles:create'],
-        access_token: accessToken,
+        access_token: 'ACCESS_TOKEN',
       });
     });
   });
 
   describe('user', () => {
     it('should get userinfo from API and set it in storage', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const { req: firstReq, res: firstRes } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const { req: firstReq, res: firstRes } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
       await fiefAuth.authenticated(getMockNextAPIHandler())(firstReq, firstRes);
       expect(firstReq.user).toEqual({ sub: userId });
 
-      const { req: secondReq, res: secondRes } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const { req: secondReq, res: secondRes } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
       await fiefAuth.authenticated(getMockNextAPIHandler())(secondReq, secondRes);
       expect(secondReq.user).toEqual({ sub: userId });
 
-      expect(mockFetch.calls('path:/userinfo').length).toEqual(1);
+      expect(userInfoMock).toHaveBeenCalledTimes(1);
     });
 
     it('should always get userinfo from API if refresh', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
-      const { req: firstReq, res: firstRes } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const { req: firstReq, res: firstRes } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
       await fiefAuth.authenticated(
         getMockNextAPIHandler(),
         { refresh: true },
       )(firstReq, firstRes);
       expect(firstReq.user).toEqual({ sub: userId });
 
-      const { req: secondReq, res: secondRes } = getMockAPIContext({ method: 'GET', headers: { authorization: `Bearer ${accessToken}` } });
+      const { req: secondReq, res: secondRes } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
       await fiefAuth.authenticated(
         getMockNextAPIHandler(),
         { refresh: true },
       )(secondReq, secondRes);
       expect(secondReq.user).toEqual({ sub: userId });
 
-      expect(mockFetch.calls('path:/userinfo').length).toEqual(2);
+      expect(userInfoMock).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -72,7 +72,7 @@ export interface FiefAuthParameters {
   /**
    * An instance of a {@link IUserInfoCache} class.
    */
-  userInfoCache?: IUserInfoCache<Request, Response>;
+  userInfoCache?: IUserInfoCache;
 
   /**
    * Optional handler for unauthorized response.
@@ -141,7 +141,7 @@ export interface FiefAuthParameters {
  * ```
  */
 const createMiddleware = (parameters: FiefAuthParameters) => {
-  const fiefAuthServer = new FiefAuth<Request, Response>(
+  const fiefAuthServer = new FiefAuth<Request>(
     parameters.client,
     parameters.tokenGetter,
     parameters.userInfoCache,
@@ -164,7 +164,7 @@ const createMiddleware = (parameters: FiefAuthParameters) => {
       req.user = null;
 
       try {
-        const { accessTokenInfo, user } = await authenticate(req, res);
+        const { accessTokenInfo, user } = await authenticate(req);
         req.accessTokenInfo = accessTokenInfo;
         req.user = user;
       } catch (err) {
