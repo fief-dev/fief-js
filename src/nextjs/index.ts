@@ -1,15 +1,6 @@
 import { IncomingMessage, OutgoingMessage } from 'http';
-import type {
-  GetServerSideProps,
-  GetServerSidePropsContext,
-  GetServerSidePropsResult,
-  PreviewData,
-  NextApiHandler,
-  NextApiRequest,
-  NextApiResponse,
-} from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
-import type { ParsedUrlQuery } from 'querystring';
 import { pathToRegexp } from 'path-to-regexp';
 
 import { Fief, FiefAccessTokenInfo, FiefUserInfo } from '../client';
@@ -24,14 +15,21 @@ import {
   authorizationBearerGetter,
   cookieGetter,
 } from '../server';
+import {
+  FiefAuthContext,
+  FiefAuthProvider,
+  useFiefAccessTokenInfo,
+  useFiefIsAuthenticated,
+  useFiefRefresh,
+  useFiefUserinfo,
 
-const getServerSidePropsResultIsProps = <P>(result: GetServerSidePropsResult<P>): result is { props: P | Promise<P> } => Object.prototype.hasOwnProperty.call(result, 'props');
+} from './react';
 
-const defaultUnauthorizedResponse = async (req: NextApiRequest, res: NextApiResponse) => {
+const defaultAPIUnauthorizedResponse = async (req: NextApiRequest, res: NextApiResponse) => {
   res.status(401).send('Unauthorized');
 };
 
-const defaultForbiddenResponse = async (req: NextApiRequest, res: NextApiResponse) => {
+const defaultAPIForbiddenResponse = async (req: NextApiRequest, res: NextApiResponse) => {
   res.status(403).send('Forbidden');
 };
 
@@ -49,10 +47,11 @@ interface FiefAuthParameters {
   logoutPath?: string;
   returnToCookieName?: string;
   returnToDefault?: string;
+  currentUserPath?: string;
   forbiddenPath?: string;
   userInfoCache?: IUserInfoCache;
-  unauthorizedResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
-  forbiddenResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
+  apiUnauthorizedResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
+  apiForbiddenResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
 }
 
 type PathsConfig = { matcher: string, parameters: AuthenticateRequestParameters }[];
@@ -82,9 +81,9 @@ class FiefAuth {
 
   private forbiddenPath: string;
 
-  private unauthorizedResponse: (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
+  private apiUnauthorizedResponse: (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
 
-  private forbiddenResponse: (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
+  private apiForbiddenResponse: (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
 
   constructor(parameters: FiefAuthParameters) {
     this.client = parameters.client;
@@ -115,13 +114,13 @@ class FiefAuth {
 
     this.forbiddenPath = parameters.forbiddenPath ? parameters.forbiddenPath : '/forbidden';
 
-    this.unauthorizedResponse = parameters.unauthorizedResponse
-      ? parameters.unauthorizedResponse
-      : defaultUnauthorizedResponse
+    this.apiUnauthorizedResponse = parameters.apiUnauthorizedResponse
+      ? parameters.apiUnauthorizedResponse
+      : defaultAPIUnauthorizedResponse
     ;
-    this.forbiddenResponse = parameters.forbiddenResponse
-      ? parameters.forbiddenResponse
-      : defaultForbiddenResponse
+    this.apiForbiddenResponse = parameters.apiForbiddenResponse
+      ? parameters.apiForbiddenResponse
+      : defaultAPIForbiddenResponse
     ;
   }
 
@@ -134,7 +133,7 @@ class FiefAuth {
       // Handle authentication callback
       if (request.nextUrl.pathname === this.redirectPath) {
         const code = request.nextUrl.searchParams.get('code');
-        const [tokens, userinfo] = await this.client.authCallback(code as string, this.redirectURI);
+        const [tokens] = await this.client.authCallback(code as string, this.redirectURI);
 
         const returnTo = request.cookies.get(this.returnToCookieName);
         const redirectURL = new URL(returnTo || this.returnToDefault, request.url);
@@ -149,10 +148,6 @@ class FiefAuth {
           },
         );
         response.cookies.set(this.returnToCookieName, '', { maxAge: 0 });
-
-        if (this.userInfoCache) {
-          this.userInfoCache.set(userinfo.sub, userinfo);
-        }
 
         return response;
       }
@@ -194,75 +189,8 @@ class FiefAuth {
     };
   }
 
-  public withAuth<
-    P extends { [key: string]: any } = { [key: string]: any },
-    Q extends ParsedUrlQuery = ParsedUrlQuery,
-    D extends PreviewData = PreviewData,
-  >(
-    getServerSideProps: GetServerSideProps<P, Q, D>,
-    authenticatedParameters: AuthenticateRequestParameters = {},
-  ) {
-    const authenticate = this.fiefAuth.authenticate(authenticatedParameters);
-    return async (
-      context: GetServerSidePropsContext<Q, D>,
-      // eslint-disable-next-line max-len
-    ): Promise<GetServerSidePropsResult<P & AuthenticateRequestResult & { forbidden: boolean }>> => {
-      const { req, res, resolvedUrl } = context;
-      let user: FiefUserInfo | null = null;
-      let accessTokenInfo: FiefAccessTokenInfo | null = null;
-      let forbidden = false;
-      try {
-        const result = await authenticate(req);
-        user = result.user;
-        accessTokenInfo = result.accessTokenInfo;
-      } catch (err) {
-        if (err instanceof FiefAuthUnauthorized) {
-          const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
-
-          res.setHeader('Set-Cookie', `${this.returnToCookieName}=${resolvedUrl}`);
-
-          return {
-            redirect: {
-              destination: authURL,
-              permanent: false,
-            },
-          };
-        }
-        if (err instanceof FiefAuthForbidden) {
-          forbidden = true;
-        }
-      }
-
-      const result = await getServerSideProps(context);
-      if (getServerSidePropsResultIsProps(result)) {
-        if (result.props instanceof Promise) {
-          return {
-            ...result,
-            props: {
-              ...(await result.props),
-              accessTokenInfo,
-              user,
-              forbidden,
-            },
-          };
-        }
-        return {
-          ...result,
-          props: {
-            ...result.props,
-            accessTokenInfo,
-            user,
-            forbidden,
-          },
-        };
-      }
-
-      return result;
-    };
-  }
-
   public authenticated<T>(
-    route: NextApiHandler<T>,
+    route: FiefNextApiHandler<T>,
     authenticatedParameters: AuthenticateRequestParameters = {},
   ): FiefNextApiHandler<T> {
     const authenticate = this.fiefAuth.authenticate(authenticatedParameters);
@@ -275,10 +203,10 @@ class FiefAuth {
         accessTokenInfo = result.accessTokenInfo;
       } catch (err) {
         if (err instanceof FiefAuthUnauthorized) {
-          return this.unauthorizedResponse(req, res);
+          return this.apiUnauthorizedResponse(req, res);
         }
         if (err instanceof FiefAuthForbidden) {
-          return this.forbiddenResponse(req, res);
+          return this.apiForbiddenResponse(req, res);
         }
       }
 
@@ -286,6 +214,15 @@ class FiefAuth {
       req.user = user;
       return route(req, res);
     };
+  }
+
+  public current_user(): FiefNextApiHandler<{ userinfo: FiefUserInfo | null }> {
+    return this.authenticated(
+      async (req, res) => {
+        res.status(200).json({ userinfo: req.user });
+      },
+      { optional: true },
+    );
   }
 }
 
@@ -296,4 +233,10 @@ export {
   authorizationBearerGetter,
   cookieGetter,
   FiefAuth,
+  FiefAuthContext,
+  FiefAuthProvider,
+  useFiefAccessTokenInfo,
+  useFiefIsAuthenticated,
+  useFiefRefresh,
+  useFiefUserinfo,
 };

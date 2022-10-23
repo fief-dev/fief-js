@@ -4,7 +4,7 @@ import type { FiefAuth } from '../browser';
 import { FiefAuthState } from './storage';
 
 const stub = (): never => {
-  throw new Error('You forgot to wrap your component in <FiefProvider>.');
+  throw new Error('You forgot to wrap your component in <FiefAuthProvider>.');
 };
 
 /**

@@ -167,16 +167,19 @@ export class FiefAuth<RQ> {
             }
           }
         } catch (err) {
-          if (err instanceof FiefAccessTokenInvalid || err instanceof FiefAccessTokenExpired) {
-            throw new FiefAuthUnauthorized();
-          }
           if (
+            !optional
+            && (err instanceof FiefAccessTokenInvalid || err instanceof FiefAccessTokenExpired)
+          ) {
+            throw new FiefAuthUnauthorized();
+          } else if (
             err instanceof FiefAccessTokenMissingScope
             || err instanceof FiefAccessTokenMissingPermission
           ) {
             throw new FiefAuthForbidden();
+          } else {
+            throw err;
           }
-          throw err;
         }
       }
       return { accessTokenInfo, user };

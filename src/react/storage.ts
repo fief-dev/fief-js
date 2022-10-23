@@ -49,7 +49,7 @@ const reducer = (state: FiefAuthState, action: AuthReducerAction): FiefAuthState
   }
 };
 
-export const useAuthStorageReduce = () => useReducer(reducer, { userinfo: null, tokenInfo: null });
+export const useAuthStorageReducer = () => useReducer(reducer, { userinfo: null, tokenInfo: null });
 
 export class FiefReactAuthStorage implements IFiefAuthStorage {
   private state: FiefAuthState;

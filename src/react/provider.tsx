@@ -4,7 +4,7 @@ import { useMemo, ReactNode } from 'react';
 import { FiefAuth } from '../browser';
 import { Fief, FiefParameters } from '../client';
 import { FiefAuthContext } from './context';
-import { FiefReactAuthStorage, useAuthStorageReduce } from './storage';
+import { FiefReactAuthStorage, useAuthStorageReducer } from './storage';
 
 export interface FiefAuthProviderProps extends FiefParameters { children?: ReactNode }
 
@@ -46,7 +46,7 @@ export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = 
     encryptionKey,
   }), [baseURL, clientId, clientSecret, encryptionKey]);
 
-  const [state, dispatch] = useAuthStorageReduce();
+  const [state, dispatch] = useAuthStorageReducer();
   const storage = useMemo(() => new FiefReactAuthStorage(state, dispatch), [state, dispatch]);
   const fiefAuth = useMemo(() => new FiefAuth(fief, storage), [fief]);
 

@@ -159,6 +159,17 @@ describe('fiefAuth', () => {
       expect(response.body).toEqual({});
     });
 
+    it('should not throw 401 if expired token', async () => {
+      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] }, 0);
+
+      const response = await request(testApp())
+        .get('/authenticated-optional')
+        .set('Authorization', `Bearer ${accessToken}`)
+        ;
+      expect(response.statusCode).toEqual(200);
+      expect(response.body).toEqual({});
+    });
+
     it('should set accessTokenInfo in Request object if valid token', async () => {
       const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
       const response = await request(testApp())
