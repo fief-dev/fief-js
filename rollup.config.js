@@ -17,7 +17,20 @@ export default [
       sourcemap: true,
     },
     plugins: [
-      nodeResolve({ jsnext: true, preferBuiltins: true, browser: true }),
+      {
+        name: 'Fake node-fetch in browser build',
+        resolveId: (source, _importer, _options) => {
+          if (source === 'node-fetch') {
+            return './src/fetch/node-fetch-fake.ts';
+          }
+          return null;
+        },
+      },
+      nodeResolve({
+        jsnext: true,
+        preferBuiltins: true,
+        browser: true,
+      }),
       json(),
       commonjs(),
       typescript(),
@@ -29,9 +42,15 @@ export default [
     input: [
       'src/index.ts',
       'src/react/index.ts',
+      'src/express/index.ts',
+      'src/nextjs/index.ts',
     ],
     plugins: [
-      typescript({ declaration: false, rootDir: 'src' }),
+      typescript({
+        declaration: false,
+        rootDir: 'src',
+        exclude: ['**/*.test.ts'],
+      }),
     ],
     output: [
       {
@@ -48,12 +67,15 @@ export default [
     input: [
       'src/index.ts',
       'src/react/index.ts',
+      'src/express/index.ts',
+      'src/nextjs/index.ts',
     ],
     plugins: [
       typescript({
         declaration: true,
         declarationDir: 'build/esm',
         rootDir: 'src',
+        exclude: ['**/*.test.ts'],
       }),
     ],
     output: [

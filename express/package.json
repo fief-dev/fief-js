@@ -1,0 +1,7 @@
+{
+  "name": "@fief/fief/express",
+  "private": true,
+  "main": "../build/cjs/express/index.js",
+  "module": "../build/esm/express/index.js",
+  "types": "../build/esm/express/index.d.ts"
+}

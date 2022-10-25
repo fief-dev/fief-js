@@ -2,6 +2,8 @@
  * @jest-environment jsdom
  */
 import 'jest-location-mock';
+import crypto from 'crypto';
+import { TextEncoder } from 'util';
 
 import type { Fief, FiefTokenResponse, FiefUserInfo } from './client';
 import {
@@ -11,8 +13,14 @@ import {
   FiefAuthNotAuthenticatedError,
 } from './browser';
 
-// Make sure TextEncoder is available in JSDom
-global.TextEncoder = require('util').TextEncoder;
+// Pretend we are in the browser with WebCrypto
+Object.defineProperty(global.self, 'crypto', {
+  value: crypto.webcrypto,
+});
+
+Object.defineProperty(global, 'TextEncoder', {
+  value: TextEncoder,
+});
 
 class MockAuthStorage implements IFiefAuthStorage {
   private storage: Record<string, string>;

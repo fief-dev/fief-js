@@ -1,7 +1,17 @@
-import axios, { Axios } from 'axios';
 import * as jose from 'jose';
-import * as qs from 'qs';
-import { isValidHash } from './crypto';
+
+import { getCrypto, ICryptoHelper } from './crypto';
+import { getFetch } from './fetch';
+
+const serializeQueryString = (object: Record<string, string>): string => {
+  const elements: string[] = [];
+  Object.keys(object).forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(object, key)) {
+      elements.push(`${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`);
+    }
+  });
+  return elements.join('&');
+};
 
 /**
  * Object containing the tokens and related information
@@ -70,6 +80,21 @@ export interface FiefAccessTokenInfo {
    */
   access_token: string;
 }
+
+/**
+ * A safe version of {@link FiefAccessTokenInfo}, without `access_token`.
+ *
+ * **Example:**
+ *
+ * ```json
+ * {
+ *     "id": "aeeb8bfa-e8f4-4724-9427-c3d5af66190e",
+ *     "scope": ["openid", "required_scope"],
+ *     "permissions": ["castles:read", "castles:create", "castles:update", "castles:delete"],
+ * }
+ * ```
+ */
+export type FiefSafeAccessTokenInfo = Omit<FiefAccessTokenInfo, 'access_token'>;
 
 /**
  * Dictionary containing user information.
@@ -171,11 +196,13 @@ export class Fief {
 
   private encryptionKey?: jose.KeyLike | Uint8Array;
 
-  private client: Axios;
+  private fetch: typeof fetch;
 
   private openIDConfiguration?: Record<string, any>;
 
   private jwks?: jose.JSONWebKeySet;
+
+  private crypto: ICryptoHelper;
 
   constructor(parameters: FiefParameters) {
     this.baseURL = parameters.baseURL;
@@ -191,12 +218,9 @@ export class Fief {
       ;
     }
 
-    this.client = axios.create({
-      baseURL: this.baseURL,
-      ...this.clientSecret ? {
-        auth: { username: this.clientId, password: this.clientSecret },
-      } : {},
-    });
+    this.fetch = getFetch();
+
+    this.crypto = getCrypto();
   }
 
   /**
@@ -278,23 +302,26 @@ export class Fief {
     codeVerifier?: string,
   ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const payload = qs.stringify({
+    const payload = serializeQueryString({
       grant_type: 'authorization_code',
       client_id: this.clientId,
       code,
       redirect_uri: redirectURI,
+      ...this.clientSecret ? { client_secret: this.clientSecret } : {},
       ...codeVerifier ? { code_verifier: codeVerifier } : {},
     });
 
-    const { data } = await this.client.post<FiefTokenResponse>(
+    const response = await this.fetch(
       openIDConfiguration.token_endpoint,
-      payload,
       {
+        method: 'POST',
+        body: payload,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       },
     );
+    const data: FiefTokenResponse = await response.json();
 
     const userinfo = await this.decodeIDToken({
       idToken: data.id_token,
@@ -327,22 +354,24 @@ export class Fief {
     scope?: string[],
   ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const payload = qs.stringify({
+    const payload = serializeQueryString({
       grant_type: 'refresh_token',
       client_id: this.clientId,
       refresh_token: refreshToken,
       ...scope ? { scope: scope.join(' ') } : {},
     });
 
-    const { data } = await this.client.post<FiefTokenResponse>(
+    const response = await this.fetch(
       openIDConfiguration.token_endpoint,
-      payload,
       {
+        method: 'POST',
+        body: payload,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       },
     );
+    const data: FiefTokenResponse = await response.json();
 
     const userinfo = await this.decodeIDToken({
       idToken: data.id_token,
@@ -454,14 +483,16 @@ export class Fief {
    */
   public async userinfo(accessToken: string): Promise<FiefUserInfo> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const { data } = await this.client.get<FiefUserInfo>(
+    const response = await this.fetch(
       openIDConfiguration.userinfo_endpoint,
       {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       },
     );
+    const data: FiefUserInfo = await response.json();
     return data;
   }
 
@@ -497,16 +528,18 @@ export class Fief {
     data: Record<string, any>,
   ): Promise<FiefUserInfo> {
     const updateProfileEndpoint = `${this.baseURL}/api/profile`;
-
-    const { data: userinfo } = await this.client.patch<FiefUserInfo>(
+    const response = await this.fetch(
       updateProfileEndpoint,
       {
-        data,
+        method: 'PATCH',
+        body: JSON.stringify(data),
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
       },
     );
+    const userinfo = await response.json();
     return userinfo;
   }
 
@@ -539,7 +572,13 @@ export class Fief {
     if (this.openIDConfiguration !== undefined) {
       return this.openIDConfiguration;
     }
-    const { data } = await this.client.get<Record<string, any>>('/.well-known/openid-configuration');
+    const response = await this.fetch(
+      `${this.baseURL}/.well-known/openid-configuration`,
+      {
+        method: 'GET',
+      },
+    );
+    const data = response.json();
     this.openIDConfiguration = data;
     return data;
   }
@@ -549,7 +588,13 @@ export class Fief {
       return this.jwks;
     }
     const openIDConfiguration = await this.getOpenIDConfiguration();
-    const { data } = await this.client.get<jose.JSONWebKeySet>(openIDConfiguration.jwks_uri);
+    const response = await this.fetch(
+      openIDConfiguration.jwks_uri,
+      {
+        method: 'GET',
+      },
+    );
+    const data: jose.JSONWebKeySet = await response.json();
     this.jwks = data;
     return data;
   }
@@ -578,13 +623,16 @@ export class Fief {
       const { payload: claims } = await jose.jwtVerify(signedToken, signatureKeys);
 
       if (claims.c_hash !== undefined) {
-        if (!code || !(await isValidHash(code, claims.c_hash as string))) {
+        if (!code || !(await this.crypto.isValidHash(code, claims.c_hash as string))) {
           throw new FiefIdTokenInvalid();
         }
       }
 
       if (claims.at_hash !== undefined) {
-        if (!accessToken || !(await isValidHash(accessToken, claims.at_hash as string))) {
+        if (
+          !accessToken
+          || !(await this.crypto.isValidHash(accessToken, claims.at_hash as string))
+        ) {
           throw new FiefIdTokenInvalid();
         }
       }
