@@ -3,7 +3,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
 import { pathToRegexp } from 'path-to-regexp';
 
-import { Fief, FiefAccessTokenInfo, FiefUserInfo } from '../client';
+import {
+  Fief,
+  FiefAccessTokenInfo,
+  FiefSafeAccessTokenInfo,
+  FiefUserInfo,
+} from '../client';
 import {
   AuthenticateRequestParameters,
   AuthenticateRequestResult,
@@ -216,10 +221,18 @@ class FiefAuth {
     };
   }
 
-  public current_user(): FiefNextApiHandler<{ userinfo: FiefUserInfo | null }> {
+  public current_user(): FiefNextApiHandler<{
+    userinfo: FiefUserInfo | null,
+    access_token_info: FiefSafeAccessTokenInfo | null,
+  }> {
     return this.authenticated(
       async (req, res) => {
-        res.status(200).json({ userinfo: req.user });
+        let safeAccessTokenInfo: FiefSafeAccessTokenInfo | null = null;
+        if (req.accessTokenInfo) {
+          const { access_token: _, ...rest } = req.accessTokenInfo;
+          safeAccessTokenInfo = rest;
+        }
+        res.status(200).json({ userinfo: req.user, access_token_info: safeAccessTokenInfo });
       },
       { optional: true },
     );

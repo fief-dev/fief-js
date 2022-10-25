@@ -3,14 +3,15 @@ import React, {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useReducer,
 } from 'react';
 
-import { FiefAccessTokenInfo, FiefUserInfo } from '../client';
+import { FiefSafeAccessTokenInfo, FiefUserInfo } from '../client';
 
 export interface FiefAuthState {
   userinfo: FiefUserInfo | null;
-  accessTokenInfo: FiefAccessTokenInfo | null;
+  accessTokenInfo: FiefSafeAccessTokenInfo | null;
 }
 
 interface SetUserInfoAuthReducerAction {
@@ -24,7 +25,7 @@ interface ClearUserInfoAuthReducerAction {
 
 interface SetAccessTokenInfoAuthReducerAction {
   type: 'setAccessTokenInfo';
-  value: FiefAccessTokenInfo;
+  value: FiefSafeAccessTokenInfo;
 }
 
 interface ClearAccessTokenInfoAuthReducerAction {
@@ -84,10 +85,14 @@ export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = 
     const response = await window.fetch(props.currentUserPath);
     if (response.status === 200) {
       const data = await response.json();
-      dispatch({ type: 'setAccessTokenInfo', value: data.userinfo });
-      dispatch({ type: 'setUserinfo', value: data.access_token_info });
+      dispatch({ type: 'setAccessTokenInfo', value: data.access_token_info });
+      dispatch({ type: 'setUserinfo', value: data.userinfo });
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return (
     <FiefAuthContext.Provider value={{ state, refresh }}>
@@ -101,7 +106,7 @@ export const useFiefUserinfo = (): FiefUserInfo | null => {
   return state.userinfo;
 };
 
-export const useFiefAccessTokenInfo = (): FiefAccessTokenInfo | null => {
+export const useFiefAccessTokenInfo = (): FiefSafeAccessTokenInfo | null => {
   const { state } = useContext(FiefAuthContext);
   return state.accessTokenInfo;
 };
