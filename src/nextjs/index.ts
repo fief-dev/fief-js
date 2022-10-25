@@ -1,5 +1,5 @@
 /**
- * NextJS integration.
+ * Next.js integration.
  *
  * @module
  */
@@ -146,7 +146,7 @@ export interface PathConfig {
   /**
    * A string to match the path.
    *
-   * It follows the same syntax as NextJS paths matching.
+   * It follows the same syntax as Next.js paths matching.
    *
    * @see [Matching paths](https://nextjs.org/docs/advanced-features/middleware#matcher)
    */
@@ -159,7 +159,7 @@ export interface PathConfig {
 }
 
 /**
- * Helper class to integrate Fief authentication with NextJS.
+ * Helper class to integrate Fief authentication with Next.js.
  *
  * @example Basic
  * ```ts
@@ -252,11 +252,11 @@ class FiefAuth {
   }
 
   /**
-   * Return a NextJS middleware to control authentication on the specified paths.
+   * Return a Next.js middleware to control authentication on the specified paths.
    *
    * @param pathsConfig - A list of paths matchers with their authentication parameters.
-   * @returns A NextJS middleware function.
-   * @see [NextJS Middleware](https://nextjs.org/docs/advanced-features/middleware)
+   * @returns A Next.js middleware function.
+   * @see [Next.js Middleware](https://nextjs.org/docs/advanced-features/middleware)
    *
    * @example
    * ```ts
@@ -363,7 +363,7 @@ class FiefAuth {
    * @param route - Your API route handler.
    * @param authenticatedParameters - Optional parameters to apply when authenticating the request.
    * @returns An API handler.
-   * @see [NextJS API Routes](https://nextjs.org/docs/api-routes/introduction)
+   * @see [Next.js API Routes](https://nextjs.org/docs/api-routes/introduction)
    *
    * @example Basic
    * ```ts

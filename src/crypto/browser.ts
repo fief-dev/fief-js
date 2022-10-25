@@ -25,7 +25,7 @@ export class BrowserCryptoHelper implements ICryptoHelper {
       this.crypto = self.crypto;
     }
 
-    // NextJS Edge runtime
+    // Next.js Edge runtime
     // @ts-ignore
     // eslint-disable-next-line no-undef
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime === 'vercel') {

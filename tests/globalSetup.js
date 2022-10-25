@@ -1,6 +1,6 @@
 /**
  * In Node 16 and 17, Fetch API is not available globally,
- * which is required to run NextJS unit tests.
+ * which is required to run Next.js unit tests.
  *
  * To circumvent this, we export manually the versions from node-fetch.
  */
