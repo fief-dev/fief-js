@@ -74,11 +74,44 @@ interface FiefAuthContextType {
 // @ts-ignore
 export const FiefAuthContext = createContext<FiefAuthContextType>(stub);
 
-interface FiefAuthProviderProps {
+/**
+ * {@link FiefAuthProvider} properties.
+ */
+export interface FiefAuthProviderProps {
+  /**
+   * Path to the current user API.
+   *
+   * This API is provided by {@link FiefAuth.currentUser}.
+   *
+   * **Example:** `/api/current-user`
+   */
   currentUserPath: string;
   children?: ReactNode;
 }
 
+/**
+ * Provide the necessary context for Fief, especially the user session state.
+ *
+ * Every component nested inside this component will have access to the Fief hooks.
+ *
+ * @param props - Component properties.
+ *
+ * @example
+ * ```tsx
+ * import { FiefAuthProvider } from '@fief/fief/nextjs';
+ * import type { AppProps } from 'next/app';
+ *
+ * function MyApp({ Component, pageProps }: AppProps) {
+ *   return (
+ *     <FiefAuthProvider currentUserPath="/api/current-user">
+ *       <Component {...pageProps} />
+ *     </FiefAuthProvider>
+ *   );
+ * };
+ *
+ * export default MyApp;
+ * ```
+ */
 export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = (props) => {
   const [state, dispatch] = useAuthStorageReducer();
   const refresh = useCallback(async () => {
@@ -101,21 +134,69 @@ export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = 
   );
 };
 
+/**
+ * Return the user information object available in session, or `null` if no current session.
+ *
+ * @returns The user information, or null if not available.
+ *
+ * @example
+ * ```tsx
+ * const userinfo = useFiefUserinfo();
+ * ````
+ */
 export const useFiefUserinfo = (): FiefUserInfo | null => {
   const { state } = useContext(FiefAuthContext);
   return state.userinfo;
 };
 
+/**
+ * Return the access token information object available in session, or `null` if no current session.
+ *
+ * @returns The access token information, or null if not available.
+ *
+ * @example
+ * ```tsx
+ * const accessTokenInfo = useFiefAccessTokenInfo();
+ * ```
+ */
 export const useFiefAccessTokenInfo = (): FiefSafeAccessTokenInfo | null => {
   const { state } = useContext(FiefAuthContext);
   return state.accessTokenInfo;
 };
 
+/**
+ * Return whether there is a valid user session.
+ *
+ * @returns `true` if there is a valid user session, `false` otherwise.
+ *
+ * @example
+ * ```tsx
+ * const isAuthenticated = useFiefIsAuthenticated();
+ * ```
+ */
 export const useFiefIsAuthenticated = (): boolean => {
   const accessTokenInfo = useFiefAccessTokenInfo();
   return accessTokenInfo !== null;
 };
 
+/**
+ * Return a function to refresh the user information from the API.
+ *
+ * @returns A refresh function.
+ *
+ * @example
+ * ```tsx
+ * const userinfo = useFiefUserinfo();
+ * const refresh = useFiefRefresh();
+ *
+ * return (
+ *     <>
+ *         <p>User: {userinfo.email}</p>
+ *         <button type="button" onClick={refresh}>Refresh user</button>
+ *     </>
+ * );
+ * ```
+ */
 export const useFiefRefresh = (): () => void => {
   const { refresh } = useContext(FiefAuthContext);
   return refresh;

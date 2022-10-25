@@ -375,11 +375,11 @@ describe('authenticated', () => {
   });
 });
 
-describe('current_user', () => {
+describe('currentUser', () => {
   it('should return null userinfo if no cookie', async () => {
     const { req, res } = getMockAPIContext({ method: 'GET' });
 
-    await fiefAuth.current_user()(req, res);
+    await fiefAuth.currentUser()(req, res);
 
     expect(res.statusCode).toEqual(200);
   });
@@ -387,7 +387,7 @@ describe('current_user', () => {
   it('should return null userinfo if no matching cookie', async () => {
     const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'foo=bar' } });
 
-    await fiefAuth.current_user()(req, res);
+    await fiefAuth.currentUser()(req, res);
 
     expect(res.statusCode).toEqual(200);
   });
@@ -396,7 +396,7 @@ describe('current_user', () => {
     validateAccessTokenMock.mockRejectedValueOnce(new FiefAccessTokenExpired() as never);
     const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
 
-    await fiefAuth.current_user()(req, res);
+    await fiefAuth.currentUser()(req, res);
 
     expect(res.statusCode).toEqual(200);
   });
@@ -404,7 +404,7 @@ describe('current_user', () => {
   it('should return userinfo if valid token', async () => {
     const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
 
-    await fiefAuth.current_user()(req, res);
+    await fiefAuth.currentUser()(req, res);
 
     expect(res.statusCode).toEqual(200);
   });

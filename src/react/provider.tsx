@@ -16,7 +16,7 @@ export interface FiefAuthProviderProps extends FiefParameters { children?: React
  * @param props - Component properties.
  *
  * @example
- * ```ts
+ * ```tsx
  * function App() {
  *   return (
  *     <FiefAuthProvider

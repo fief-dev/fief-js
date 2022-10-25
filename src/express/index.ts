@@ -133,7 +133,7 @@ export interface FiefAuthParameters {
  * ```ts
  * app.get(
  *     '/authenticated-scope',
- *     fiefAuthMiddleware({ spermissions: ['castles:read'] }),
+ *     fiefAuthMiddleware({ permissions: ['castles:create'] }),
  *     (req, res) => {
  *         res.json(req.accessTokenInfo);
  *     },

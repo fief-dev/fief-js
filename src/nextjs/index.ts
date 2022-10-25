@@ -1,3 +1,8 @@
+/**
+ * NextJS integration.
+ *
+ * @module
+ */
 import { IncomingMessage, OutgoingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,13 +21,12 @@ import {
   FiefAuthForbidden,
   FiefAuthUnauthorized,
   IUserInfoCache,
-  TokenGetter,
-  authorizationBearerGetter,
   cookieGetter,
 } from '../server';
 import {
   FiefAuthContext,
   FiefAuthProvider,
+  FiefAuthProviderProps,
   useFiefAccessTokenInfo,
   useFiefIsAuthenticated,
   useFiefRefresh,
@@ -43,24 +47,142 @@ type FiefNextApiHandler<T> = (
   res: NextApiResponse<T>,
 ) => unknown | Promise<unknown>;
 
-interface FiefAuthParameters {
+/**
+ * Parameters to instantiate a {@link FiefAuth} helper class.
+ */
+export interface FiefAuthParameters {
+  /**
+   * Instance of a {@link Fief} client.
+   */
   client: Fief;
+
+  /**
+   * Name of the cookie that will keep the session.
+   */
   sessionCookieName: string;
+
+  /**
+   * Absolute callback URI where the user
+   * will be redirected after Fief authentication.
+   *
+   * **Example:** `http://localhost:3000/callback`
+   */
   redirectURI: string;
+
+  /**
+   * Path to the callback page where the user
+   * will be redirected after Fief authentication.
+   *
+   * Defaults to `/callback`.
+   */
   redirectPath?: string;
+
+  /**
+   * Absolute callback URI where the user
+   * will be redirected after Fief logout.
+   *
+   * **Example:** `http://localhost:3000`
+   */
   logoutRedirectURI: string;
+
+  /**
+   * Path to the logout page.
+   *
+   * Defaults to `/logout`.
+   */
   logoutPath?: string;
+
+  /**
+   * Name of the cookie that will keep the page the user
+   * was trying to access while unauthenticated.
+   *
+   * It allows to automatically redirect the user to the page
+   * they were looking for after a successul authentication.
+   *
+   * Defaults to `return_to`.
+   */
   returnToCookieName?: string;
+
+  /**
+   * Path where the user will be redirected by default
+   * after a successfull authentication if there is
+   * not `returnTo` cookie.
+   *
+   * Defaults to `/`.
+   */
   returnToDefault?: string;
-  currentUserPath?: string;
+
+  /**
+   * Path of the page showing a forbidden error to the user.
+   *
+   * This page will be shown when the user doesn't have the required
+   * scope or permissions.
+   *
+   * Defaults to `/forbidden`.
+   */
   forbiddenPath?: string;
+
+  /**
+   * An instance of a {@link IUserInfoCache} class.
+   */
   userInfoCache?: IUserInfoCache;
+
+  /**
+   * Optional API handler for unauthorized response.
+   *
+   * The default handler will return a plain text response with status code 401.
+   */
   apiUnauthorizedResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
+
+  /**
+   * Optional API handler for forbidden response.
+   *
+   * The default handler will return a plain text response with status code 403.
+   */
   apiForbiddenResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
 }
 
-type PathsConfig = { matcher: string, parameters: AuthenticateRequestParameters }[];
+export interface PathConfig {
+  /**
+   * A string to match the path.
+   *
+   * It follows the same syntax as NextJS paths matching.
+   *
+   * @see [Matching paths](https://nextjs.org/docs/advanced-features/middleware#matcher)
+   */
+  matcher: string;
 
+  /**
+   * Parameters to apply when authenticating the request on this matched path.
+   */
+  parameters: AuthenticateRequestParameters;
+}
+
+/**
+ * Helper class to integrate Fief authentication with NextJS.
+ *
+ * @example Basic
+ * ```ts
+ * import { Fief, FiefUserInfo } from '@fief/fief';
+ * import { FiefAuth, IUserInfoCache } from '@fief/fief/nextjs';
+ *
+ * export const SESSION_COOKIE_NAME = "user_session";
+ *
+ * const fiefClient = new fief.Fief({
+ *     baseURL: 'https://example.fief.dev',
+ *     clientId: 'YOUR_CLIENT_ID',
+ *     clientSecret: 'YOUR_CLIENT_SECRET',
+ * });
+ *
+ * export const fiefAuth = new FiefAuth({
+ *   client: fiefClient,
+ *   sessionCookieName: SESSION_COOKIE_NAME,
+ *   redirectURI: 'http://localhost:3000/callback',
+ *   logoutRedirectURI: 'http://localhost:3000',
+ *   userInfoCache: new UserInfoCache(),
+ * });
+ * ```
+ */
 class FiefAuth {
   private client: Fief;
 
@@ -129,7 +251,48 @@ class FiefAuth {
     ;
   }
 
-  public middleware(pathsConfig: PathsConfig) {
+  /**
+   * Return a NextJS middleware to control authentication on the specified paths.
+   *
+   * @param pathsConfig - A list of paths matchers with their authentication parameters.
+   * @returns A NextJS middleware function.
+   * @see [NextJS Middleware](https://nextjs.org/docs/advanced-features/middleware)
+   *
+   * @example
+   * ```ts
+   * import type { NextRequest } from 'next/server'
+   *
+   * import { fiefAuth } from './fief'
+   *
+   * const authMiddleware = fiefAuth.middleware([
+   *   {
+   *     matcher: '/private',
+   *     parameters: {},
+   *   },
+   *   {
+   *     matcher: '/app/:path*',
+   *     parameters: {},
+   *   },
+   *   {
+   *     matcher: '/scope',
+   *     parameters: {
+   *         scope: ['required_scope']
+   *     },
+   *   },
+   *   {
+   *     matcher: '/permission',
+   *     parameters: {
+   *         permissions: ['castles:create']
+   *     },
+   *   },
+   * ]);
+   *
+   * export async function middleware(request: NextRequest) {
+   *   return authMiddleware(request);
+   * };
+   * ```
+   */
+  public middleware(pathsConfig: PathConfig[]) {
     const compiledPathsAuthenticators = pathsConfig.map(({ matcher, parameters }) => ({
       matcher: pathToRegexp(matcher),
       authenticate: this.fiefAuthEdge.authenticate(parameters),
@@ -194,6 +357,41 @@ class FiefAuth {
     };
   }
 
+  /**
+   * Return an API middleware to authenticate an API route.
+   *
+   * @param route - Your API route handler.
+   * @param authenticatedParameters - Optional parameters to apply when authenticating the request.
+   * @returns An API handler.
+   * @see [NextJS API Routes](https://nextjs.org/docs/api-routes/introduction)
+   *
+   * @example Basic
+   * ```ts
+   * import { fiefAuth } from "../../fief"
+   *
+   * export default fiefAuth.authenticated(function handler(req, res) {
+   *     res.status(200).json(req.user);
+   * });
+   * ```
+   *
+   * @example Required scope
+   * ```ts
+   * import { fiefAuth } from "../../fief"
+   *
+   * export default fiefAuth.authenticated(function handler(req, res) {
+   *     res.status(200).json(req.user);
+   * }, { scope: ['required_scope'] });
+   * ```
+   *
+   * @example Required permissions
+   * ```ts
+   * import { fiefAuth } from "../../fief"
+   *
+   * export default fiefAuth.authenticated(function handler(req, res) {
+   *     res.status(200).json(req.user);
+   * }, { permissions: ['castles:create'] });
+   * ```
+   */
   public authenticated<T>(
     route: FiefNextApiHandler<T>,
     authenticatedParameters: AuthenticateRequestParameters = {},
@@ -221,7 +419,22 @@ class FiefAuth {
     };
   }
 
-  public current_user(): FiefNextApiHandler<{
+  /**
+   * Return an API route to get the {@link FiefUserInfo} and {@link FiefAccessTokenInfo}
+   * of the currently authenticated user.
+   *
+   * It's mainly useful to get the user information from the React hooks.
+   *
+   * @returns An API route.
+   *
+   * @example
+   * ```
+   * import { fiefAuth } from '../../fief';
+   *
+   * export default fiefAuth.currentUser();
+   * ```
+   */
+  public currentUser(): FiefNextApiHandler<{
     userinfo: FiefUserInfo | null,
     access_token_info: FiefSafeAccessTokenInfo | null,
   }> {
@@ -242,12 +455,10 @@ class FiefAuth {
 export {
   AuthenticateRequestParameters,
   IUserInfoCache,
-  TokenGetter,
-  authorizationBearerGetter,
-  cookieGetter,
   FiefAuth,
   FiefAuthContext,
   FiefAuthProvider,
+  FiefAuthProviderProps,
   useFiefAccessTokenInfo,
   useFiefIsAuthenticated,
   useFiefRefresh,

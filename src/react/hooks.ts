@@ -10,7 +10,7 @@ import { FiefAuthContext } from './context';
  * @returns The {@link index.browser.FiefAuth} browser helper.
  *
  * @example
- * ```ts
+ * ```tsx
  * const fiefAuth = useFiefAuth();
  * ```
  */
@@ -25,7 +25,7 @@ export const useFiefAuth = (): FiefAuth => {
  * @returns The user information, or null if not available.
  *
  * @example
- * ```ts
+ * ```tsx
  * const userinfo = useFiefUserinfo();
  * ````
  */
@@ -40,7 +40,7 @@ export const useFiefUserinfo = (): FiefUserInfo | null => {
  * @returns The token information, or null if not available.
  *
  * @example
- * ```ts
+ * ```tsx
  * const tokenInfo = useFiefTokenInfo();
  * ```
  */
@@ -55,7 +55,7 @@ export const useFiefTokenInfo = (): FiefTokenResponse | null => {
  * @returns `true` if there is a valid user session, `false` otherwise.
  *
  * @example
- * ```ts
+ * ```tsx
  * const isAuthenticated = useFiefIsAuthenticated();
  * ```
  */
