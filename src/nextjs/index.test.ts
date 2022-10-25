@@ -122,6 +122,16 @@ describe('middleware', () => {
     },
   ]);
 
+  describe('logout', () => {
+    it('should redirect to Fief authentication URL', async () => {
+      const request = new NextRequest('http://localhost:3000/login');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/authorize');
+    });
+  });
+
   describe('callback', () => {
     it('should handle authentication callback and redirect to default if no returnTo cookie', async () => {
       const request = new NextRequest('http://localhost:3000/callback');

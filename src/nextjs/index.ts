@@ -62,6 +62,13 @@ export interface FiefAuthParameters {
   sessionCookieName: string;
 
   /**
+   * Path to the login page.
+   *
+   * Defaults to `/login`.
+   */
+   loginPath?: string;
+
+  /**
    * Absolute callback URI where the user
    * will be redirected after Fief authentication.
    *
@@ -190,9 +197,9 @@ class FiefAuth {
 
   private fiefAuthEdge: FiefAuthServer<NextRequest>;
 
-  private userInfoCache?: IUserInfoCache;
-
   private sessionCookieName: string;
+
+  private loginPath: string;
 
   private redirectURI: string;
 
@@ -226,9 +233,9 @@ class FiefAuth {
       parameters.userInfoCache,
     );
 
-    this.userInfoCache = parameters.userInfoCache;
-
     this.sessionCookieName = parameters.sessionCookieName;
+
+    this.loginPath = parameters.loginPath ? parameters.loginPath : '/login';
 
     this.redirectURI = parameters.redirectURI;
     this.redirectPath = parameters.redirectPath ? parameters.redirectPath : '/callback';
@@ -298,6 +305,12 @@ class FiefAuth {
       authenticate: this.fiefAuthEdge.authenticate(parameters),
     }));
     return async (request: NextRequest): Promise<NextResponse> => {
+      // Handle login
+      if (request.nextUrl.pathname === this.loginPath) {
+        const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
+        return NextResponse.redirect(authURL);
+      }
+
       // Handle authentication callback
       if (request.nextUrl.pathname === this.redirectPath) {
         const code = request.nextUrl.searchParams.get('code');
