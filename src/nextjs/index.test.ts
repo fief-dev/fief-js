@@ -76,7 +76,7 @@ const fiefAuth = new FiefAuth({
   client: fiefMock(),
   sessionCookieName: 'user_session',
   userInfoCache,
-  redirectURI: 'http://localhost:3000/callback',
+  redirectURI: 'http://localhost:3000/auth-callback',
   logoutRedirectURI: 'http://localhost:3000',
 });
 
@@ -134,7 +134,7 @@ describe('middleware', () => {
 
   describe('callback', () => {
     it('should handle authentication callback and redirect to default if no returnTo cookie', async () => {
-      const request = new NextRequest('http://localhost:3000/callback');
+      const request = new NextRequest('http://localhost:3000/auth-callback');
       const response = await middleware(request);
 
       expect(response.status).toBe(307);
@@ -144,7 +144,7 @@ describe('middleware', () => {
     });
 
     it('should handle authentication callback and redirect to page set in returnTo cookie', async () => {
-      const request = new NextRequest('http://localhost:3000/callback');
+      const request = new NextRequest('http://localhost:3000/auth-callback');
       request.cookies.set('return_to', '/return-to');
       const response = await middleware(request);
 

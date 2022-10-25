@@ -72,7 +72,7 @@ export interface FiefAuthParameters {
    * Absolute callback URI where the user
    * will be redirected after Fief authentication.
    *
-   * **Example:** `http://localhost:3000/callback`
+   * **Example:** `http://localhost:3000/auth-callback`
    */
   redirectURI: string;
 
@@ -80,7 +80,7 @@ export interface FiefAuthParameters {
    * Path to the callback page where the user
    * will be redirected after Fief authentication.
    *
-   * Defaults to `/callback`.
+   * Defaults to `/auth-callback`.
    */
   redirectPath?: string;
 
@@ -184,7 +184,7 @@ export interface PathConfig {
  * export const fiefAuth = new FiefAuth({
  *   client: fiefClient,
  *   sessionCookieName: SESSION_COOKIE_NAME,
- *   redirectURI: 'http://localhost:3000/callback',
+ *   redirectURI: 'http://localhost:3000/auth-callback',
  *   logoutRedirectURI: 'http://localhost:3000',
  *   userInfoCache: new UserInfoCache(),
  * });
@@ -238,7 +238,7 @@ class FiefAuth {
     this.loginPath = parameters.loginPath ? parameters.loginPath : '/login';
 
     this.redirectURI = parameters.redirectURI;
-    this.redirectPath = parameters.redirectPath ? parameters.redirectPath : '/callback';
+    this.redirectPath = parameters.redirectPath ? parameters.redirectPath : '/auth-callback';
 
     this.logoutRedirectURI = parameters.logoutRedirectURI;
     this.logoutPath = parameters.logoutPath ? parameters.logoutPath : '/logout';
