@@ -1,9 +1,9 @@
 import httpMocks from 'node-mocks-http';
 
-import { authorizationBearerGetter, cookieGetter } from './server';
+import { authorizationSchemeGetter, cookieGetter } from './server';
 
-describe('authorizationBearerGetter', () => {
-  const tokenGetter = authorizationBearerGetter('bearer');
+describe('authorizationSchemeGetter', () => {
+  const tokenGetter = authorizationSchemeGetter('bearer');
 
   it('should return null if not authorization header', async () => {
     const request = httpMocks.createRequest({ headers: {} });

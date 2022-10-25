@@ -17,7 +17,7 @@ import {
   FiefAuthUnauthorized,
   IUserInfoCache,
   TokenGetter,
-  authorizationBearerGetter,
+  authorizationSchemeGetter,
   cookieGetter,
 } from '../server';
 
@@ -109,7 +109,7 @@ export interface FiefAuthParameters {
  * });
  * const fiefAuthMiddleware = fiefExpress.createMiddleware({
  *     client: fiefClient,
- *     tokenGetter: fiefExpress.authorizationBearerGetter(),
+ *     tokenGetter: fiefExpress.authorizationSchemeGetter(),
  * });
  *
  * const app = express();
@@ -185,7 +185,7 @@ export {
   AuthenticateRequestParameters,
   IUserInfoCache,
   TokenGetter,
-  authorizationBearerGetter,
+  authorizationSchemeGetter,
   cookieGetter,
   createMiddleware,
 };

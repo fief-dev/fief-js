@@ -196,7 +196,7 @@ export class FiefAuth<RQ> {
  *
  * @returns A {@link TokenGetter} function.
  */
-export const authorizationBearerGetter = (scheme: string = 'bearer'): TokenGetter<IncomingMessage> => async (
+export const authorizationSchemeGetter = (scheme: string = 'bearer'): TokenGetter<IncomingMessage> => async (
   req: IncomingMessage,
 ) => {
   const { authorization } = req.headers;

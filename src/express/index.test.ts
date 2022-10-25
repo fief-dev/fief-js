@@ -7,7 +7,7 @@ import request from 'supertest';
 import { Fief, FiefUserInfo } from '../client';
 import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
 import { createMiddleware } from './index';
-import { authorizationBearerGetter, IUserInfoCache } from '../server';
+import { authorizationSchemeGetter, IUserInfoCache } from '../server';
 
 const mockFetch = fetchMock.sandbox();
 jest.mock('../fetch/index', () => ({ getFetch: () => mockFetch }));
@@ -51,7 +51,7 @@ const userInfoCache = new UserInfoCache();
 
 const fiefAuthMiddleware = createMiddleware({
   client: fief,
-  tokenGetter: authorizationBearerGetter(),
+  tokenGetter: authorizationSchemeGetter(),
   userInfoCache,
 });
 
