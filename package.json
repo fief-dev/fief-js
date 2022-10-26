@@ -4,7 +4,6 @@
   "description": "Fief client for JavaScript",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
-  "browser": "build/index.umd.js",
   "types": "build/esm/index.d.ts",
   "scripts": {
     "build": "rm -rf build/ && rollup -c",

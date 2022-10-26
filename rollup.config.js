@@ -4,15 +4,13 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import { terser } from 'rollup-plugin-terser';
 
-import pkg from './package.json';
-
 export default [
   // browser-friendly UMD build
   {
     input: 'src/index.ts',
     output: {
       name: 'fief',
-      file: pkg.browser,
+      file: 'build/index.umd.js',
       format: 'umd',
       sourcemap: true,
     },
