@@ -66,7 +66,7 @@ export interface FiefAuthParameters {
    *
    * Defaults to `/login`.
    */
-   loginPath?: string;
+  loginPath?: string;
 
   /**
    * Absolute callback URI where the user
@@ -230,7 +230,6 @@ class FiefAuth {
     this.fiefAuthEdge = new FiefAuthServer(
       parameters.client,
       async (request) => request.cookies.get(parameters.sessionCookieName) || null,
-      parameters.userInfoCache,
     );
 
     this.sessionCookieName = parameters.sessionCookieName;
@@ -342,26 +341,25 @@ class FiefAuth {
       }
 
       // Check authentication for configured paths
-      for (let i = 0; i < compiledPathsAuthenticators.length; i += 1) {
-        const { matcher, authenticate } = compiledPathsAuthenticators[i];
-        if (matcher.exec(request.nextUrl.pathname)) {
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            await authenticate(request);
-          } catch (err) {
-            if (err instanceof FiefAuthUnauthorized) {
-              // eslint-disable-next-line no-await-in-loop
-              const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
+      const matchingPath = compiledPathsAuthenticators.find(
+        ({ matcher }) => matcher.exec(request.nextUrl.pathname),
+      );
+      if (matchingPath) {
+        try {
+          await matchingPath.authenticate(request);
+        } catch (err) {
+          if (err instanceof FiefAuthUnauthorized) {
+            const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
 
-              const response = NextResponse.redirect(authURL);
-              response.cookies.set(this.returnToCookieName, request.nextUrl.pathname);
+            const response = NextResponse.redirect(authURL);
+            response.cookies.set(this.returnToCookieName, request.nextUrl.pathname);
 
-              return response;
-            }
-            if (err instanceof FiefAuthForbidden) {
-              return NextResponse.rewrite(new URL(this.forbiddenPath, request.url));
-            }
+            return response;
           }
+          if (err instanceof FiefAuthForbidden) {
+            return NextResponse.rewrite(new URL(this.forbiddenPath, request.url));
+          }
+          throw err;
         }
       }
 
