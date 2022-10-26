@@ -449,17 +449,20 @@ class FiefAuth {
     userinfo: FiefUserInfo | null,
     access_token_info: FiefSafeAccessTokenInfo | null,
   }> {
-    return this.authenticated(
-      async (req, res) => {
-        let safeAccessTokenInfo: FiefSafeAccessTokenInfo | null = null;
-        if (req.accessTokenInfo) {
-          const { access_token: _, ...rest } = req.accessTokenInfo;
-          safeAccessTokenInfo = rest;
-        }
-        res.status(200).json({ userinfo: req.user, access_token_info: safeAccessTokenInfo });
-      },
-      { optional: true },
-    );
+    return async (req, res) => {
+      const refresh = req.query.refresh === 'true';
+      return this.authenticated(
+        async (_req, _res) => {
+          let safeAccessTokenInfo: FiefSafeAccessTokenInfo | null = null;
+          if (_req.accessTokenInfo) {
+            const { access_token: _, ...rest } = _req.accessTokenInfo;
+            safeAccessTokenInfo = rest;
+          }
+          _res.status(200).json({ userinfo: _req.user, access_token_info: safeAccessTokenInfo });
+        },
+        { optional: true, refresh },
+      )(req, res as NextApiResponse);
+    };
   }
 }
 

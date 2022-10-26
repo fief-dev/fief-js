@@ -66,9 +66,18 @@ const stub = (): never => {
   throw new Error('You forgot to wrap your component in <FiefAuthProvider>.');
 };
 
+/**
+ * Function to refresh the user information from the API.
+ *
+ * @param useCache - If `true`, the data will be read from your server cache (much faster).
+ * If `false`, the data will be retrieved from the Fief API (fresher data).
+ * Defaults to `true`.
+ */
+export type RefreshFunction = (useCache?: boolean) => Promise<void>;
+
 interface FiefAuthContextType {
   state: FiefAuthState;
-  refresh: () => void;
+  refresh: RefreshFunction;
 }
 
 // @ts-ignore
@@ -114,8 +123,9 @@ export interface FiefAuthProviderProps {
  */
 export const FiefAuthProvider: React.FunctionComponent<FiefAuthProviderProps> = (props) => {
   const [state, dispatch] = useAuthStorageReducer();
-  const refresh = useCallback(async () => {
-    const response = await window.fetch(props.currentUserPath);
+  const refresh = useCallback(async (useCache?: boolean) => {
+    const refreshParam = useCache === undefined ? false : !useCache;
+    const response = await window.fetch(`${props.currentUserPath}?refresh=${refreshParam}`);
     if (response.status === 200) {
       const data = await response.json();
       dispatch({ type: 'setAccessTokenInfo', value: data.access_token_info });
@@ -182,9 +192,9 @@ export const useFiefIsAuthenticated = (): boolean => {
 /**
  * Return a function to refresh the user information from the API.
  *
- * @returns A refresh function.
+ * @returns A {@link RefreshFunction}.
  *
- * @example
+ * @example Basic
  * ```tsx
  * const userinfo = useFiefUserinfo();
  * const refresh = useFiefRefresh();
@@ -196,8 +206,21 @@ export const useFiefIsAuthenticated = (): boolean => {
  *     </>
  * );
  * ```
+ *
+ * @example Refresh from Fief server
+ * ```tsx
+ * const userinfo = useFiefUserinfo();
+ * const refresh = useFiefRefresh();
+ *
+ * return (
+ *     <>
+ *         <p>User: {userinfo.email}</p>
+ *         <button type="button" onClick={() => refresh(false)}>Refresh user</button>
+ *     </>
+ * );
+ * ```
  */
-export const useFiefRefresh = (): () => void => {
+export const useFiefRefresh = (): RefreshFunction => {
   const { refresh } = useContext(FiefAuthContext);
   return refresh;
 };
