@@ -5,6 +5,9 @@
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/esm/index.d.ts",
+  "browser": {
+    "crypto": false
+  },
   "scripts": {
     "build": "rm -rf build/ && rollup -c",
     "lint": "eslint . --ext .ts,.tsx",
