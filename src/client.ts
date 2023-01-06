@@ -233,6 +233,8 @@ export class Fief {
    * @param parameters.scope - Optional list of scopes to ask for.
    * @param parameters.codeChallenge - Optional code challenge for [PKCE process](https://docs.fief.dev/going-further/pkce/).
    * @param parameters.codeChallengeMethod - Method used to hash the PKCE code challenge.
+   * @param parameters.lang - Optional parameter to set the user locale.
+   * Should be a valid [RFC 3066](https://www.rfc-editor.org/rfc/rfc3066) language identifier, like `fr` or `pt-PT`.
    * @param parameters.extrasParams - Optional object containing specific parameters.
    *
    * @returns The authorization URL.
@@ -251,6 +253,7 @@ export class Fief {
     scope?: string[];
     codeChallenge?: string,
     codeChallengeMethod?: 'plain' | 'S256',
+    lang?: string;
     extrasParams?: Record<string, string>;
   }): Promise<string> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
@@ -261,6 +264,7 @@ export class Fief {
       scope,
       codeChallenge,
       codeChallengeMethod,
+      lang,
       extrasParams,
     } = parameters;
 
@@ -273,6 +277,7 @@ export class Fief {
       ...codeChallengeMethod ? { code_challenge_method: codeChallengeMethod } : {},
       ...state ? { state } : {},
       ...scope ? { scope: scope.join(' ') } : {},
+      ...lang ? { lang } : {},
       ...extrasParams ? { ...extrasParams } : {},
     });
 

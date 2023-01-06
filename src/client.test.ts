@@ -71,6 +71,7 @@ describe('getAuthURL', () => {
       [{ scope: ['SCOPE_1', 'SCOPE_2'] }, '&scope=SCOPE_1+SCOPE_2'],
       [{ codeChallenge: 'CODE', codeChallengeMethod: 'S256' as 'S256' }, '&code_challenge=CODE&code_challenge_method=S256'],
       [{ extrasParams: { foo: 'bar' } }, '&foo=bar'],
+      [{ lang: 'fr-FR' }, '&lang=fr-FR'],
     ],
   )('should generate URL with params %o', (parameters, expectedParameters) => fief.getAuthURL({
     redirectURI: 'https://www.bretagne.duchy/callback',
