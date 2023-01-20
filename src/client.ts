@@ -235,7 +235,7 @@ export class Fief {
    * @param parameters.codeChallengeMethod - Method used to hash the PKCE code challenge.
    * @param parameters.lang - Optional parameter to set the user locale.
    * Should be a valid [RFC 3066](https://www.rfc-editor.org/rfc/rfc3066) language identifier, like `fr` or `pt-PT`.
-   * @param parameters.extrasParams - Optional object containing specific parameters.
+   * @param parameters.extrasParams - Optional object containing [specific parameters](https://docs.fief.dev/going-further/authorize-url/).
    *
    * @returns The authorization URL.
    *
