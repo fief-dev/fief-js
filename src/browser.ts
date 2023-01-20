@@ -234,22 +234,45 @@ export class FiefAuth {
    *
    * @param redirectURI - Your callback URI where the user
    * will be redirected after Fief authentication.
+   * @param parameters.state - Optional string that will be returned back
+   * in the callback parameters to allow you to retrieve state information.
+   * @param parameters.scope - Optional list of scopes to ask for. Defaults to `['openid']`.
+   * @param parameters.lang - Optional parameter to set the user locale.
+   * Should be a valid [RFC 3066](https://www.rfc-editor.org/rfc/rfc3066) language identifier, like `fr` or `pt-PT`.
+   * @param parameters.extrasParams - Optional object containing specific parameters.
    *
    * @example
    * ```ts
    * fiefAuth.redirectToLogin('http://localhost:8080/callback.html');
    * ```
+   *
+   * @example
+   * Set the user locale.
+   * ```ts
+   * fiefAuth.redirectToLogin('http://localhost:8080/callback.html', { lang: 'fr-FR' });
+   * ```
    */
-  public async redirectToLogin(redirectURI: string): Promise<void> {
+  public async redirectToLogin(
+    redirectURI: string,
+    parameters?: {
+      state?: string,
+      scope?: string[],
+      lang?: string,
+      extrasParams?: Record<string, string>,
+    },
+  ): Promise<void> {
     const codeVerifier = await this.crypto.generateCodeVerifier();
     const codeChallenge = await this.crypto.getCodeChallenge(codeVerifier, 'S256');
     this.storage.setCodeVerifier(codeVerifier);
 
     const authorizeURL = await this.client.getAuthURL({
       redirectURI,
-      scope: ['openid'],
+      scope: parameters?.scope || ['openid'],
       codeChallenge,
       codeChallengeMethod: 'S256',
+      ...parameters?.state ? { state: parameters.state } : {},
+      ...parameters?.state ? { lang: parameters.lang } : {},
+      ...parameters?.extrasParams ? { extrasParams: parameters.extrasParams } : {},
     });
     window.location.href = authorizeURL;
   }
