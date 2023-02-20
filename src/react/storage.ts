@@ -9,6 +9,11 @@ export interface FiefAuthState {
   tokenInfo: FiefTokenResponse | null;
 }
 
+interface LoadFromStorageAuthReducerAction {
+  type: 'loadFromStorage';
+  value: FiefAuthState;
+}
+
 interface SetUserInfoAuthReducerAction {
   type: 'setUserinfo';
   value: FiefUserInfo;
@@ -28,6 +33,7 @@ interface ClearTokenInfoAuthReducerAction {
 }
 
 type AuthReducerAction = (
+  LoadFromStorageAuthReducerAction |
   SetUserInfoAuthReducerAction |
   ClearUserInfoAuthReducerAction |
   SetTokenInfoAuthReducerAction |
@@ -36,6 +42,8 @@ type AuthReducerAction = (
 
 const reducer = (state: FiefAuthState, action: AuthReducerAction): FiefAuthState => {
   switch (action.type) {
+    case 'loadFromStorage':
+      return action.value;
     case 'setUserinfo':
       return { ...state, userinfo: action.value };
     case 'clearUserinfo':
@@ -49,7 +57,25 @@ const reducer = (state: FiefAuthState, action: AuthReducerAction): FiefAuthState
   }
 };
 
-export const useAuthStorageReducer = () => useReducer(reducer, { userinfo: null, tokenInfo: null });
+const STATE_STORAGE_KEY = 'fief-authstate';
+
+const loadStateFromStorage = (state: FiefAuthState): FiefAuthState => {
+  const value = window.sessionStorage.getItem(STATE_STORAGE_KEY);
+  if (value) {
+    return JSON.parse(value);
+  }
+  return state;
+};
+
+export const saveStateToStorage = (state: FiefAuthState): void => {
+  window.sessionStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+};
+
+export const useAuthStorageReducer = () => useReducer(
+  reducer,
+  { userinfo: null, tokenInfo: null },
+  loadStateFromStorage,
+);
 
 export class FiefReactAuthStorage implements IFiefAuthStorage {
   private state: FiefAuthState;
