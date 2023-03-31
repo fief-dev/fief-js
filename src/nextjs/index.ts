@@ -229,7 +229,7 @@ class FiefAuth {
     );
     this.fiefAuthEdge = new FiefAuthServer(
       parameters.client,
-      async (request) => request.cookies.get(parameters.sessionCookieName) || null,
+      async (request) => request.cookies.get(parameters.sessionCookieName)?.value || null,
     );
 
     this.sessionCookieName = parameters.sessionCookieName;
@@ -315,7 +315,7 @@ class FiefAuth {
         const code = request.nextUrl.searchParams.get('code');
         const [tokens] = await this.client.authCallback(code as string, this.redirectURI);
 
-        const returnTo = request.cookies.get(this.returnToCookieName);
+        const returnTo = request.cookies.get(this.returnToCookieName)?.value;
         const redirectURL = new URL(returnTo || this.returnToDefault, request.url);
         const response = NextResponse.redirect(redirectURL);
         response.cookies.set(
