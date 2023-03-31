@@ -140,7 +140,7 @@ describe('middleware', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('Location')).toEqual('http://localhost:3000/');
 
-      expect(response.cookies.get('user_session')).toEqual('ACCESS_TOKEN');
+      expect(response.cookies.get('user_session')?.value).toEqual('ACCESS_TOKEN');
     });
 
     it('should handle authentication callback and redirect to page set in returnTo cookie', async () => {
@@ -151,7 +151,7 @@ describe('middleware', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('Location')).toEqual('http://localhost:3000/return-to');
 
-      expect(response.cookies.get('user_session')).toEqual('ACCESS_TOKEN');
+      expect(response.cookies.get('user_session')?.value).toEqual('ACCESS_TOKEN');
     });
   });
 
@@ -163,7 +163,7 @@ describe('middleware', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/logout');
 
-      expect(response.cookies.get('user_session')).toEqual('');
+      expect(response.cookies.get('user_session')?.value).toEqual('');
     });
   });
 
@@ -175,7 +175,7 @@ describe('middleware', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/authorize');
 
-      expect(response.cookies.get('return_to')).toEqual('/authenticated');
+      expect(response.cookies.get('return_to')?.value).toEqual('/authenticated');
     });
 
     it('should redirect to Fief authentication URL if expired token', async () => {
@@ -187,7 +187,7 @@ describe('middleware', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/authorize');
 
-      expect(response.cookies.get('return_to')).toEqual('/authenticated');
+      expect(response.cookies.get('return_to')?.value).toEqual('/authenticated');
     });
 
     it('should return the default response if valid token', async () => {
