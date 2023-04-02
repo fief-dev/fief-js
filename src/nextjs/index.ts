@@ -147,6 +147,20 @@ export interface FiefAuthParameters {
    * The default handler will return a plain text response with status code 403.
    */
   apiForbiddenResponse?: (req: IncomingMessage, res: OutgoingMessage) => Promise<void>;
+
+  /**
+   * Name of the request header where authenticated user ID is made available by middleware.
+   *
+   * Defaults to `X-FiefAuth-User-Id`.
+   */
+  userIdHeaderName?: string;
+
+  /**
+   * Name of the request header where access token is made available by middleware.
+   *
+   * Defaults to `X-FiefAuth-Access-Token`.
+   */
+  accessTokenHeaderName?: string;
 }
 
 export interface PathConfig {
@@ -219,6 +233,10 @@ class FiefAuth {
 
   private apiForbiddenResponse: (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
 
+  private userIdHeaderName: string;
+
+  private accessTokenHeaderName: string;
+
   constructor(parameters: FiefAuthParameters) {
     this.client = parameters.client;
 
@@ -255,6 +273,9 @@ class FiefAuth {
       ? parameters.apiForbiddenResponse
       : defaultAPIForbiddenResponse
     ;
+
+    this.userIdHeaderName = parameters.userIdHeaderName ? parameters.userIdHeaderName : 'X-FiefAuth-User-Id';
+    this.accessTokenHeaderName = parameters.accessTokenHeaderName ? parameters.accessTokenHeaderName : 'X-FiefAuth-Access-Token';
   }
 
   /**
@@ -346,7 +367,13 @@ class FiefAuth {
       );
       if (matchingPath) {
         try {
-          await matchingPath.authenticate(request);
+          const result = await matchingPath.authenticate(request);
+          const requestHeaders = new Headers(request.headers);
+          if (result.accessTokenInfo) {
+            requestHeaders.set(this.userIdHeaderName, result.accessTokenInfo.id);
+            requestHeaders.set(this.accessTokenHeaderName, result.accessTokenInfo.access_token);
+          }
+          return NextResponse.next({ request: { headers: requestHeaders } });
         } catch (err) {
           if (err instanceof FiefAuthUnauthorized) {
             const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
