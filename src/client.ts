@@ -82,21 +82,6 @@ export interface FiefAccessTokenInfo {
 }
 
 /**
- * A safe version of {@link FiefAccessTokenInfo}, without `access_token`.
- *
- * **Example:**
- *
- * ```json
- * {
- *     "id": "aeeb8bfa-e8f4-4724-9427-c3d5af66190e",
- *     "scope": ["openid", "required_scope"],
- *     "permissions": ["castles:read", "castles:create", "castles:update", "castles:delete"],
- * }
- * ```
- */
-export type FiefSafeAccessTokenInfo = Omit<FiefAccessTokenInfo, 'access_token'>;
-
-/**
  * Dictionary containing user information.
  *
  *

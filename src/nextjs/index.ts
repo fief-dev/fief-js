@@ -11,7 +11,6 @@ import { pathToRegexp } from 'path-to-regexp';
 import {
   Fief,
   FiefAccessTokenInfo,
-  FiefSafeAccessTokenInfo,
   FiefUserInfo,
 } from '../client';
 import {
@@ -474,18 +473,13 @@ class FiefAuth {
    */
   public currentUser(): FiefNextApiHandler<{
     userinfo: FiefUserInfo | null,
-    access_token_info: FiefSafeAccessTokenInfo | null,
+    access_token_info: FiefAccessTokenInfo | null,
   }> {
     return async (req, res) => {
       const refresh = req.query.refresh === 'true';
       return this.authenticated(
         async (_req, _res) => {
-          let safeAccessTokenInfo: FiefSafeAccessTokenInfo | null = null;
-          if (_req.accessTokenInfo) {
-            const { access_token: _, ...rest } = _req.accessTokenInfo;
-            safeAccessTokenInfo = rest;
-          }
-          _res.status(200).json({ userinfo: _req.user, access_token_info: safeAccessTokenInfo });
+          _res.status(200).json({ userinfo: _req.user, access_token_info: _req.accessTokenInfo });
         },
         { optional: true, refresh },
       )(req, res as NextApiResponse);

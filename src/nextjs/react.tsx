@@ -7,11 +7,11 @@ import React, {
   useReducer,
 } from 'react';
 
-import { FiefSafeAccessTokenInfo, FiefUserInfo } from '../client';
+import { FiefAccessTokenInfo, FiefUserInfo } from '../client';
 
 export interface FiefAuthState {
   userinfo: FiefUserInfo | null;
-  accessTokenInfo: FiefSafeAccessTokenInfo | null;
+  accessTokenInfo: FiefAccessTokenInfo | null;
 }
 
 interface SetUserInfoAuthReducerAction {
@@ -25,7 +25,7 @@ interface ClearUserInfoAuthReducerAction {
 
 interface SetAccessTokenInfoAuthReducerAction {
   type: 'setAccessTokenInfo';
-  value: FiefSafeAccessTokenInfo;
+  value: FiefAccessTokenInfo;
 }
 
 interface ClearAccessTokenInfoAuthReducerAction {
@@ -169,7 +169,7 @@ export const useFiefUserinfo = (): FiefUserInfo | null => {
  * const accessTokenInfo = useFiefAccessTokenInfo();
  * ```
  */
-export const useFiefAccessTokenInfo = (): FiefSafeAccessTokenInfo | null => {
+export const useFiefAccessTokenInfo = (): FiefAccessTokenInfo | null => {
   const { state } = useContext(FiefAuthContext);
   return state.accessTokenInfo;
 };
