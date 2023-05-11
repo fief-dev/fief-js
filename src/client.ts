@@ -503,7 +503,7 @@ export class Fief {
    * @example
    * Update password
    * ```ts
-   * userinfo = await fief.updateProfile('ACCESS_TOKEN', { password: 'hermine1' })
+   * userinfo = await fief.updateProfile('ACCESS_TOKEN', { password: 'herminetincture' })
    * ```
    *
    * @example
