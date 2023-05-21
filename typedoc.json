@@ -4,7 +4,8 @@
       "src/server.ts",
       "src/react/index.ts",
       "src/express/index.ts",
-      "src/nextjs/index.ts"
+      "src/nextjs/index.ts",
+      "src/nextjs/react.tsx"
     ],
     "out": "docs"
 }
