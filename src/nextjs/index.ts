@@ -368,7 +368,7 @@ class FiefAuth {
             const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
 
             const response = NextResponse.redirect(authURL);
-            response.cookies.set(this.returnToCookieName, request.nextUrl.pathname);
+            response.cookies.set(this.returnToCookieName, `${request.nextUrl.pathname}${request.nextUrl.search}`);
 
             return response;
           }

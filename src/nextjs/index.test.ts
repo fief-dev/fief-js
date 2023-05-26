@@ -190,6 +190,18 @@ describe('middleware', () => {
       expect(response.cookies.get('return_to')?.value).toEqual('/authenticated');
     });
 
+    it('should preserve query parameters in return_to URL', async () => {
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAccessTokenExpired() as never);
+      const request = new NextRequest('http://localhost:3000/authenticated?query1=value1&query2=value2');
+      request.cookies.set('user_session', 'ACCESS_TOKEN');
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toEqual('https://bretagne.fief.dev/authorize');
+
+      expect(response.cookies.get('return_to')?.value).toEqual('/authenticated?query1=value1&query2=value2');
+    });
+
     it('should return the default response if valid token', async () => {
       const request = new NextRequest('http://localhost:3000/authenticated');
       request.cookies.set('user_session', 'ACCESS_TOKEN');
