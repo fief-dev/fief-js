@@ -317,7 +317,12 @@ class FiefAuth {
       // Handle login
       if (request.nextUrl.pathname === this.loginPath) {
         const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
-        return NextResponse.redirect(authURL);
+        const response = NextResponse.redirect(authURL);
+        const returnTo = request.nextUrl.searchParams.get('return_to');
+        if (returnTo) {
+          response.cookies.set(this.returnToCookieName, returnTo);
+        }
+        return response;
       }
 
       // Handle authentication callback
