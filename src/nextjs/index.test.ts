@@ -122,7 +122,7 @@ describe('middleware', () => {
     },
   ]);
 
-  describe('logout', () => {
+  describe('login', () => {
     it('should redirect to Fief authentication URL', async () => {
       const request = new NextRequest('http://localhost:3000/login');
       const response = await middleware(request);
@@ -156,6 +156,15 @@ describe('middleware', () => {
   });
 
   describe('logout', () => {
+    it('should do nothing and just return empty response on prefetch', async () => {
+      const request = new NextRequest('http://localhost:3000/logout', { headers: { 'X-Middleware-Prefetch': '1' } });
+      const response = await middleware(request);
+
+      expect(response.status).toBe(204);
+
+      expect(response.cookies.get('user_session')).toBeUndefined();
+    });
+
     it('should clear session cookie and redirect to Fief logout URL', async () => {
       const request = new NextRequest('http://localhost:3000/logout');
       const response = await middleware(request);

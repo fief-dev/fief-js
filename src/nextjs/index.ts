@@ -314,8 +314,13 @@ class FiefAuth {
       authenticate: this.fiefAuthEdge.authenticate(parameters),
     }));
     return async (request: NextRequest): Promise<NextResponse> => {
+      const isPrefetchRequest = request.headers.get('X-Middleware-Prefetch') === '1';
+
       // Handle login
       if (request.nextUrl.pathname === this.loginPath) {
+        if (isPrefetchRequest) {
+          return new NextResponse(null, { status: 204 });
+        }
         const authURL = await this.client.getAuthURL({ redirectURI: this.redirectURI, scope: ['openid'] });
         const response = NextResponse.redirect(authURL);
         const returnTo = request.nextUrl.searchParams.get('return_to');
@@ -327,6 +332,9 @@ class FiefAuth {
 
       // Handle authentication callback
       if (request.nextUrl.pathname === this.redirectPath) {
+        if (isPrefetchRequest) {
+          return new NextResponse(null, { status: 204 });
+        }
         const code = request.nextUrl.searchParams.get('code');
         const [tokens] = await this.client.authCallback(code as string, this.redirectURI);
 
@@ -349,6 +357,9 @@ class FiefAuth {
 
       // Handle logout
       if (request.nextUrl.pathname === this.logoutPath) {
+        if (isPrefetchRequest) {
+          return new NextResponse(null, { status: 204 });
+        }
         const logoutURL = await this.client.getLogoutURL({ redirectURI: this.logoutRedirectURI });
         const response = NextResponse.redirect(logoutURL);
         response.cookies.set(this.sessionCookieName, '', { maxAge: 0 });
