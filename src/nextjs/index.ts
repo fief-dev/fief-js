@@ -16,11 +16,11 @@ import {
 import {
   AuthenticateRequestParameters,
   AuthenticateRequestResult,
+  cookieGetter,
   FiefAuth as FiefAuthServer,
   FiefAuthForbidden,
   FiefAuthUnauthorized,
   IUserInfoCache,
-  cookieGetter,
 } from '../server';
 
 const defaultAPIUnauthorizedResponse = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -495,6 +495,6 @@ class FiefAuth {
 
 export {
   AuthenticateRequestParameters,
-  IUserInfoCache,
   FiefAuth,
+  IUserInfoCache,
 };

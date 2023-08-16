@@ -3,6 +3,7 @@
  */
 import crypto from 'crypto';
 import { TextEncoder } from 'util';
+
 import { BrowserCryptoHelper } from './browser';
 
 // Pretend we are in the browser with WebCrypto

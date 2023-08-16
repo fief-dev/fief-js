@@ -1,7 +1,8 @@
-import httpMocks from 'node-mocks-http';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { NextRequest } from 'next/server';
+import httpMocks from 'node-mocks-http';
 
+import { userId } from '../../tests/utils';
 import {
   Fief,
   FiefAccessTokenExpired,
@@ -11,9 +12,8 @@ import {
   FiefTokenResponse,
   FiefUserInfo,
 } from '../client';
-import { userId } from '../../tests/utils';
-import { FiefAuth } from './index';
 import { AuthenticateRequestResult, IUserInfoCache } from '../server';
+import { FiefAuth } from './index';
 
 class UserInfoCache implements IUserInfoCache {
   private storage: Record<string, any>;

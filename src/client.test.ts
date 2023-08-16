@@ -1,6 +1,9 @@
 import fetchMock from 'fetch-mock';
 
 import {
+  encryptionKey, generateToken, signatureKeyPublic, userId,
+} from '../tests/utils';
+import {
   Fief,
   FiefAccessTokenExpired,
   FiefAccessTokenInvalid,
@@ -9,9 +12,6 @@ import {
   FiefIdTokenInvalid,
   FiefRequestError,
 } from './client';
-import {
-  generateToken, signatureKeyPublic, encryptionKey, userId,
-} from '../tests/utils';
 import { getCrypto } from './crypto';
 
 const mockFetch = fetchMock.sandbox();

@@ -5,13 +5,13 @@
  */
 
 import { FiefAuthContext } from './context';
-import { FiefAuthProvider, FiefAuthProviderProps } from './provider';
 import {
   useFiefAuth,
   useFiefIsAuthenticated,
   useFiefTokenInfo,
   useFiefUserinfo,
 } from './hooks';
+import { FiefAuthProvider, FiefAuthProviderProps } from './provider';
 import { FiefAuthState } from './storage';
 
 export {

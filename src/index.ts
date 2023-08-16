@@ -4,11 +4,11 @@
  * @module
  */
 
+export * as browser from './browser';
 export {
   Fief,
-  FiefAccessTokenInfo,
-  FiefUserInfo,
   FiefAccessTokenExpired,
+  FiefAccessTokenInfo,
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
@@ -16,7 +16,6 @@ export {
   FiefIdTokenInvalid,
   FiefParameters,
   FiefTokenResponse,
+  FiefUserInfo,
 } from './client';
-
-export * as browser from './browser';
 export * as crypto from './crypto';

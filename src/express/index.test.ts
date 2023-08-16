@@ -1,13 +1,12 @@
-import fetchMock from 'fetch-mock';
-
 import express, { Express } from 'express';
 import session from 'express-session';
+import fetchMock from 'fetch-mock';
 import request from 'supertest';
 
-import { Fief, FiefUserInfo } from '../client';
 import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
-import { createMiddleware } from './index';
+import { Fief, FiefUserInfo } from '../client';
 import { authorizationSchemeGetter, IUserInfoCache } from '../server';
+import { createMiddleware } from './index';
 
 const mockFetch = fetchMock.sandbox();
 jest.mock('../fetch/index', () => ({ getFetch: () => mockFetch }));

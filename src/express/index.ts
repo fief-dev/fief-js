@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
 import {
   Fief,
@@ -12,13 +12,13 @@ import {
 } from '../client';
 import {
   AuthenticateRequestParameters,
+  authorizationSchemeGetter,
+  cookieGetter,
   FiefAuth,
   FiefAuthForbidden,
   FiefAuthUnauthorized,
   IUserInfoCache,
   TokenGetter,
-  authorizationSchemeGetter,
-  cookieGetter,
 } from '../server';
 
 declare global {
@@ -183,9 +183,9 @@ const createMiddleware = (parameters: FiefAuthParameters) => {
 
 export {
   AuthenticateRequestParameters,
-  IUserInfoCache,
-  TokenGetter,
   authorizationSchemeGetter,
   cookieGetter,
   createMiddleware,
+  IUserInfoCache,
+  TokenGetter,
 };

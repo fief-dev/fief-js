@@ -2,16 +2,17 @@
  * @jest-environment jsdom
  */
 import 'jest-location-mock';
+
 import crypto from 'crypto';
 import { TextEncoder } from 'util';
 
-import type { Fief, FiefTokenResponse, FiefUserInfo } from './client';
 import {
   FiefAuth,
   FiefAuthAuthorizeError,
-  IFiefAuthStorage,
   FiefAuthNotAuthenticatedError,
+  IFiefAuthStorage,
 } from './browser';
+import type { Fief, FiefTokenResponse, FiefUserInfo } from './client';
 
 // Pretend we are in the browser with WebCrypto
 Object.defineProperty(global.self, 'crypto', {
