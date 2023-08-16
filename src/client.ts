@@ -122,6 +122,19 @@ export interface FiefUserInfo extends jose.JWTPayload {
 }
 
 export class FiefError extends Error { }
+
+export class FiefRequestError extends FiefError {
+  public status: number;
+
+  public detail: string;
+
+  constructor(status: number, detail: string) {
+    super(`[${status}] - ${detail}`);
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 export class FiefAccessTokenInvalid extends FiefError { }
 export class FiefAccessTokenExpired extends FiefError { }
 export class FiefAccessTokenMissingScope extends FiefError { }
@@ -311,6 +324,7 @@ export class Fief {
         },
       },
     );
+    await Fief.handleRequestError(response);
     const data: FiefTokenResponse = await response.json();
 
     const userinfo = await this.decodeIDToken({
@@ -361,6 +375,7 @@ export class Fief {
         },
       },
     );
+    await Fief.handleRequestError(response);
     const data: FiefTokenResponse = await response.json();
 
     const userinfo = await this.decodeIDToken({
@@ -482,6 +497,7 @@ export class Fief {
         },
       },
     );
+    await Fief.handleRequestError(response);
     const data: FiefUserInfo = await response.json();
     return data;
   }
@@ -529,6 +545,7 @@ export class Fief {
         },
       },
     );
+    await Fief.handleRequestError(response);
     const userinfo = await response.json();
     return userinfo;
   }
@@ -568,6 +585,9 @@ export class Fief {
         method: 'GET',
       },
     );
+
+    await Fief.handleRequestError(response);
+
     const data = response.json();
     this.openIDConfiguration = data;
     return data;
@@ -584,6 +604,7 @@ export class Fief {
         method: 'GET',
       },
     );
+    await Fief.handleRequestError(response);
     const data: jose.JSONWebKeySet = await response.json();
     this.jwks = data;
     return data;
@@ -633,6 +654,13 @@ export class Fief {
         throw new FiefIdTokenInvalid();
       }
       throw err;
+    }
+  }
+
+  private static async handleRequestError(response: Response) {
+    if (response.status < 200 || response.status > 299) {
+      const detail = await response.text();
+      throw new FiefRequestError(response.status, detail);
     }
   }
 }

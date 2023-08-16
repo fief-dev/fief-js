@@ -7,6 +7,7 @@ import {
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
   FiefIdTokenInvalid,
+  FiefRequestError,
 } from './client';
 import {
   generateToken, signatureKeyPublic, encryptionKey, userId,
@@ -64,6 +65,17 @@ beforeEach(() => {
 });
 
 describe('getAuthURL', () => {
+  it('should throw an error if getOpenIDConfiguration fails', async () => {
+    mockFetch.get('path:/.well-known/openid-configuration', { status: 400, body: { detail: 'Error' } }, { overwriteRoutes: true });
+
+    expect.assertions(1);
+    try {
+      await fief.getAuthURL({ redirectURI: 'https://www.bretagne.duchy/callback' });
+    } catch (err) {
+      expect(err).toBeInstanceOf(FiefRequestError);
+    }
+  });
+
   it.each(
     [
       [{}, ''],
