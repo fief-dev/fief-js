@@ -15,6 +15,7 @@ export {
   FiefError,
   FiefIdTokenInvalid,
   FiefParameters,
+  FiefRequestError,
   FiefTokenResponse,
   FiefUserInfo,
 } from './client';
