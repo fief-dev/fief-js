@@ -9,6 +9,7 @@ import {
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
+  FiefACR,
   FiefIdTokenInvalid,
   FiefRequestError,
 } from './client';
@@ -255,7 +256,7 @@ describe('validateAccessToken', () => {
   });
 
   it('should reject expired access token', async () => {
-    const newAccessToken = await generateToken(false, { scope: 'openid', permissions: [] }, 0);
+    const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] }, 0);
 
     expect.assertions(1);
     try {
@@ -266,7 +267,7 @@ describe('validateAccessToken', () => {
   });
 
   it('should reject if missing required scope', async () => {
-    const newAccessToken = await generateToken(false, { scope: 'openid', permissions: [] });
+    const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
 
     expect.assertions(1);
     try {
@@ -277,19 +278,20 @@ describe('validateAccessToken', () => {
   });
 
   it('should validate token with right scope', async () => {
-    const newAccessToken = await generateToken(false, { scope: 'openid offline_access', permissions: [] });
+    const newAccessToken = await generateToken(false, { scope: 'openid offline_access', acr: FiefACR.LEVEL_ZERO, permissions: [] });
 
     const info = await fief.validateAccessToken(newAccessToken, ['openid', 'offline_access']);
     expect(info).toStrictEqual({
       id: userId,
       scope: ['openid', 'offline_access'],
+      acr: FiefACR.LEVEL_ZERO,
       permissions: [],
       access_token: newAccessToken,
     });
   });
 
   it('should reject if missing required permission', async () => {
-    const newAccessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read'] });
+    const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: ['castles:read'] });
 
     expect.assertions(1);
     try {
@@ -300,12 +302,13 @@ describe('validateAccessToken', () => {
   });
 
   it('should validate token with right permissions', async () => {
-    const newAccessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read', 'castles:create'] });
+    const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: ['castles:read', 'castles:create'] });
 
     const info = await fief.validateAccessToken(newAccessToken, undefined, ['castles:create']);
     expect(info).toStrictEqual({
       id: userId,
       scope: ['openid'],
+      acr: FiefACR.LEVEL_ZERO,
       permissions: ['castles:read', 'castles:create'],
       access_token: newAccessToken,
     });

@@ -4,7 +4,7 @@ import fetchMock from 'fetch-mock';
 import request from 'supertest';
 
 import { generateToken, signatureKeyPublic, userId } from '../../tests/utils';
-import { Fief, FiefUserInfo } from '../client';
+import { Fief, FiefACR, FiefUserInfo } from '../client';
 import { authorizationSchemeGetter, IUserInfoCache } from '../server';
 import { createMiddleware } from './index';
 
@@ -135,7 +135,7 @@ describe('fiefAuth', () => {
   });
 
   it('should set accessTokenInfo in Request object if valid token', async () => {
-    const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
+    const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
     const response = await request(testApp())
       .get('/authenticated')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -144,6 +144,7 @@ describe('fiefAuth', () => {
     expect(response.body).toEqual({
       id: userId,
       scope: ['openid'],
+      acr: FiefACR.LEVEL_ZERO,
       permissions: [],
       access_token: accessToken,
     });
@@ -170,7 +171,7 @@ describe('fiefAuth', () => {
     });
 
     it('should set accessTokenInfo in Request object if valid token', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
       const response = await request(testApp())
         .get('/authenticated-optional')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -179,6 +180,7 @@ describe('fiefAuth', () => {
       expect(response.body).toEqual({
         id: userId,
         scope: ['openid'],
+        acr: FiefACR.LEVEL_ZERO,
         permissions: [],
         access_token: accessToken,
       });
@@ -187,7 +189,7 @@ describe('fiefAuth', () => {
 
   describe('scope', () => {
     it('should throw 403 if missing scope', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
       const response = await request(testApp())
         .get('/authenticated-scope')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -196,7 +198,7 @@ describe('fiefAuth', () => {
     });
 
     it('should set accessTokenInfo in Request object if valid scope', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid required_scope', permissions: [] });
+      const accessToken = await generateToken(false, { scope: 'openid required_scope', acr: FiefACR.LEVEL_ZERO, permissions: [] });
       const response = await request(testApp())
         .get('/authenticated-scope')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -205,6 +207,7 @@ describe('fiefAuth', () => {
       expect(response.body).toEqual({
         id: userId,
         scope: ['openid', 'required_scope'],
+        acr: FiefACR.LEVEL_ZERO,
         permissions: [],
         access_token: accessToken,
       });
@@ -213,7 +216,7 @@ describe('fiefAuth', () => {
 
   describe('permission', () => {
     it('should throw 403 if missing permission', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read'] });
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: ['castles:read'] });
       const response = await request(testApp())
         .get('/authenticated-permission')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -222,7 +225,7 @@ describe('fiefAuth', () => {
     });
 
     it('should set accessTokenInfo in Request object if valid permission', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: ['castles:read', 'castles:create'] });
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: ['castles:read', 'castles:create'] });
       const response = await request(testApp())
         .get('/authenticated-permission')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -231,6 +234,7 @@ describe('fiefAuth', () => {
       expect(response.body).toEqual({
         id: userId,
         scope: ['openid'],
+        acr: FiefACR.LEVEL_ZERO,
         permissions: ['castles:read', 'castles:create'],
         access_token: accessToken,
       });
@@ -239,7 +243,7 @@ describe('fiefAuth', () => {
 
   describe('user', () => {
     it('should get userinfo from API and set it in storage', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
       const app = testApp();
 
       const responseFirst = await request(app)
@@ -260,7 +264,7 @@ describe('fiefAuth', () => {
     });
 
     it('should always get userinfo from API if refresh', async () => {
-      const accessToken = await generateToken(false, { scope: 'openid', permissions: [] });
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
       const app = testApp();
 
       const responseFirst = await request(app)

@@ -14,6 +14,21 @@ const serializeQueryString = (object: Record<string, string>): string => {
 };
 
 /**
+ * List of defined Authentication Context Class Reference.
+ */
+// eslint-disable-next-line no-shadow
+export enum FiefACR {
+  /**
+   * Level 0. No authentication was performed, a previous session was used.
+   */
+  LEVEL_ZERO = '0',
+  /**
+   * Level 1. Password authentication was performed.
+   */
+  LEVEL_ONE = '1',
+}
+
+/**
  * Object containing the tokens and related information
  * returned by Fief after a successful authentication.
  */
@@ -54,6 +69,7 @@ export interface FiefTokenResponse {
  * {
  *     "id": "aeeb8bfa-e8f4-4724-9427-c3d5af66190e",
  *     "scope": ["openid", "required_scope"],
+ *     "acr": "1",
  *     "permissions": ["castles:read", "castles:create", "castles:update", "castles:delete"],
  *     "access_token": "ACCESS_TOKEN",
  * }
@@ -69,6 +85,11 @@ export interface FiefAccessTokenInfo {
    * List of granted scopes for this access token.
    */
   scope: string[];
+
+  /**
+   * Level of Authentication Context class Reference.
+   */
+  acr: FiefACR;
 
   /**
    * List of [granted permissions](https://docs.fief.dev/getting-started/access-control/) for this user.
@@ -443,6 +464,11 @@ export class Fief {
         });
       }
 
+      const acr = claims.acr as (FiefACR | undefined);
+      if (acr === undefined) {
+        throw new FiefAccessTokenInvalid();
+      }
+
       const permissions = claims.permissions as (string[] | undefined);
       if (permissions === undefined) {
         throw new FiefAccessTokenInvalid();
@@ -461,6 +487,7 @@ export class Fief {
       return {
         id: claims.sub as string,
         scope: accessTokenScopes,
+        acr,
         permissions,
         access_token: accessToken,
       };
