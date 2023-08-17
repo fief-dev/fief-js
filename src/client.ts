@@ -538,18 +538,6 @@ export class Fief {
    * @returns Updated user information.
    *
    * @example
-   * Update email address
-   * ```ts
-   * userinfo = await fief.updateProfile('ACCESS_TOKEN', { email: 'anne@nantes.city' })
-   * ```
-   *
-   * @example
-   * Update password
-   * ```ts
-   * userinfo = await fief.updateProfile('ACCESS_TOKEN', { password: 'herminetincture' })
-   * ```
-   *
-   * @example
    * To update [user field](https://docs.fief.dev/getting-started/user-fields/) values,
    * you need to nest them into a `fields` object, indexed by their slug.
    * ```ts
@@ -566,6 +554,118 @@ export class Fief {
       {
         method: 'PATCH',
         body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    await Fief.handleRequestError(response);
+    const userinfo = await response.json();
+    return userinfo;
+  }
+
+  /**
+   * Changes the user password with the Fief API using a valid access token.
+   *
+   * **An access token with an ACR of at least level 1 is required.**
+   *
+   * @param accessToken - A valid access token.
+   * @param newPassword - The new password.
+   *
+   * @returns Updated user information.
+   *
+   * @example
+   * ```ts
+   * userinfo = await fief.changePassword('ACCESS_TOKEN', 'herminetincture')
+   * ```
+   */
+  public async changePassword(
+    accessToken: string,
+    newPassword: string,
+  ): Promise<FiefUserInfo> {
+    const updateProfileEndpoint = `${this.baseURL}/api/password`;
+    const response = await this.fetch(
+      updateProfileEndpoint,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ password: newPassword }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    await Fief.handleRequestError(response);
+    const userinfo = await response.json();
+    return userinfo;
+  }
+
+  /**
+   * Requests an email change with the Fief API using a valid access token.
+   *
+   * The user will receive a verification code on this new email address.
+   * It shall be used with the method `emailChange` to complete the modification.
+   *
+   * **An access token with an ACR of at least level 1 is required.**
+   *
+   * @param accessToken - A valid access token.
+   * @param newPassword - The new email address.
+   *
+   * @returns Updated user information.
+   *
+   * @example
+   * ```ts
+   * userinfo = await fief.emailChange('ACCESS_TOKEN', 'herminetincture')
+   * ```
+   */
+  public async emailChange(
+    accessToken: string,
+    email: string,
+  ): Promise<FiefUserInfo> {
+    const updateProfileEndpoint = `${this.baseURL}/api/email/change`;
+    const response = await this.fetch(
+      updateProfileEndpoint,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ email }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    await Fief.handleRequestError(response);
+    const userinfo = await response.json();
+    return userinfo;
+  }
+
+  /**
+   * Verifies the user email with the Fief API using a valid access token and verification code.
+   *
+   *
+   * **An access token with an ACR of at least level 1 is required.**
+   *
+   * @param accessToken - A valid access token.
+   * @param newPassword - The new email address.
+   *
+   * @returns Updated user information.
+   *
+   * @example
+   * ```ts
+   * userinfo = await fief.emailVerify('ACCESS_TOKEN', 'ABCDE')
+   * ```
+   */
+  public async emailVerify(
+    accessToken: string,
+    code: string,
+  ): Promise<FiefUserInfo> {
+    const updateProfileEndpoint = `${this.baseURL}/api/email/verify`;
+    const response = await this.fetch(
+      updateProfileEndpoint,
+      {
+        method: 'POST',
+        body: JSON.stringify({ code }),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,

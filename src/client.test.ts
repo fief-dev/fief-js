@@ -324,11 +324,32 @@ describe('userinfo', () => {
   });
 });
 
-describe('updateProfile', () => {
-  it('should return data from userinfo endpoint', async () => {
-    mockFetch.patch('path:/api/profile', { status: 200, body: { sub: userId } });
+describe.each<[string, keyof Fief, [string, any]]>([
+  ['/api/profile', 'updateProfile', ['ACCESS_TOKEN', { fields: { first_name: 'Anne' } }]],
+  ['/api/password', 'changePassword', ['ACCESS_TOKEN', 'herminetincture']],
+  ['/api/email/change', 'emailChange', ['ACCESS_TOKEN', 'anne@nantes.city']],
+  ['/api/email/verify', 'emailVerify', ['ACCESS_TOKEN', 'ABCDE']],
+])('update user methods', (endpoint, methodName, args) => {
+  it('should throw FiefRequestError on API error', async () => {
+    mockFetch.mock(`path:${endpoint}`, { status: 400, body: { detail: 'error' } });
 
-    const userinfo = await fief.updateProfile('ACCESS_TOKEN', { email: 'anne@bretagne.duchy' });
+    expect.assertions(1);
+    try {
+      const method = fief[methodName].bind(fief);
+      // @ts-ignore
+      await method(...args);
+    } catch (err) {
+      expect(err).toBeInstanceOf(FiefRequestError);
+    }
+  });
+
+  it('should return userinfo on success', async () => {
+    mockFetch.mock(`path:${endpoint}`, { status: 200, body: { sub: userId } });
+
+    const method = fief[methodName].bind(fief);
+    // @ts-ignore
+    const userinfo = await method(...args);
+
     expect(userinfo).toStrictEqual({ sub: userId });
   });
 });
