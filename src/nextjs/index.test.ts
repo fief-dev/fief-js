@@ -9,6 +9,7 @@ import {
   FiefAccessTokenInfo,
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
+  FiefACR,
   FiefTokenResponse,
   FiefUserInfo,
 } from '../client';
@@ -56,6 +57,7 @@ const authCallbackMock = jest.fn(() => [tokenInfo, { sub: userId }]);
 const accessTokenInfo: FiefAccessTokenInfo = {
   id: userId,
   scope: ['openid'],
+  acr: FiefACR.LEVEL_ZERO,
   permissions: [],
   access_token: 'ACCESS_TOKEN',
 };

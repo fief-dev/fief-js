@@ -12,6 +12,7 @@ export {
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
+  FiefACR,
   FiefError,
   FiefIdTokenInvalid,
   FiefParameters,
