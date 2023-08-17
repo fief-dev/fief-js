@@ -61,7 +61,7 @@ export interface FiefTokenResponse {
 }
 
 /**
- * Typed dictionary containing information about the access token.
+ * Object containing information about the access token.
  *
  * **Example:**
  *
@@ -103,7 +103,7 @@ export interface FiefAccessTokenInfo {
 }
 
 /**
- * Dictionary containing user information.
+ * Object containing user information.
  *
  *
  * **Example:**
@@ -142,8 +142,14 @@ export interface FiefUserInfo extends jose.JWTPayload {
   fields: Record<string, any>;
 }
 
+/**
+ * Base Fief client error.
+ */
 export class FiefError extends Error { }
 
+/**
+ * The request to Fief server resulted in an error.
+ */
 export class FiefRequestError extends FiefError {
   public status: number;
 
@@ -156,10 +162,29 @@ export class FiefRequestError extends FiefError {
   }
 }
 
+/**
+ * The access token is invalid.
+ */
 export class FiefAccessTokenInvalid extends FiefError { }
+
+/**
+ * The access token is expired.
+ */
 export class FiefAccessTokenExpired extends FiefError { }
+
+/**
+ * The access token is missing a required scope.
+ */
 export class FiefAccessTokenMissingScope extends FiefError { }
+
+/**
+ * The access token is missing a required permission.
+ */
 export class FiefAccessTokenMissingPermission extends FiefError { }
+
+/**
+ * The ID token is invalid.
+ */
 export class FiefIdTokenInvalid extends FiefError { }
 
 /**
@@ -605,7 +630,7 @@ export class Fief {
    * Requests an email change with the Fief API using a valid access token.
    *
    * The user will receive a verification code on this new email address.
-   * It shall be used with the method `emailChange` to complete the modification.
+   * It shall be used with the method {@link emailVerify} to complete the modification.
    *
    * **An access token with an ACR of at least level 1 is required.**
    *
@@ -616,7 +641,7 @@ export class Fief {
    *
    * @example
    * ```ts
-   * userinfo = await fief.emailChange('ACCESS_TOKEN', 'herminetincture')
+   * userinfo = await fief.emailChange('ACCESS_TOKEN', 'anne@nantes.city')
    * ```
    */
   public async emailChange(
