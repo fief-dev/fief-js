@@ -5,6 +5,7 @@ import httpMocks from 'node-mocks-http';
 import { userId } from '../../tests/utils';
 import {
   Fief,
+  FiefAccessTokenACRTooLow,
   FiefAccessTokenExpired,
   FiefAccessTokenInfo,
   FiefAccessTokenMissingPermission,
@@ -114,6 +115,12 @@ describe('middleware', () => {
       matcher: '/authenticated-scope',
       parameters: {
         scope: ['required_scope'],
+      },
+    },
+    {
+      matcher: '/authenticated-acr',
+      parameters: {
+        acr: FiefACR.LEVEL_ONE,
       },
     },
     {
@@ -345,6 +352,35 @@ describe('authenticated', () => {
         id: userId,
         scope: ['openid', 'required_scope'],
         acr: FiefACR.LEVEL_ZERO,
+        permissions: [],
+        access_token: 'ACCESS_TOKEN',
+      });
+    });
+  });
+
+  describe('acr', () => {
+    it('should throw 403 if invalid ACR', async () => {
+      validateAccessTokenMock.mockRejectedValueOnce(new FiefAccessTokenACRTooLow() as never);
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
+      await fiefAuth.authenticated(getMockNextAPIHandler(), { acr: FiefACR.LEVEL_ZERO })(req, res);
+
+      expect(res.statusCode).toEqual(403);
+    });
+
+    it('should set accessTokenInfo in Request object if valid ACR', async () => {
+      validateAccessTokenMock.mockImplementationOnce(() => ({
+        ...accessTokenInfo,
+        acr: FiefACR.LEVEL_ONE,
+      }));
+      const { req, res } = getMockAPIContext({ method: 'GET', headers: { cookie: 'user_session=ACCESS_TOKEN' } });
+
+      await fiefAuth.authenticated(getMockNextAPIHandler(), { acr: FiefACR.LEVEL_ONE })(req, res);
+
+      expect(req.accessTokenInfo).toEqual({
+        id: userId,
+        scope: ['openid'],
+        acr: FiefACR.LEVEL_ONE,
         permissions: [],
         access_token: 'ACCESS_TOKEN',
       });

@@ -7,6 +7,7 @@
 export * as browser from './browser';
 export {
   Fief,
+  FiefAccessTokenACRTooLow,
   FiefAccessTokenExpired,
   FiefAccessTokenInfo,
   FiefAccessTokenInvalid,

@@ -28,6 +28,12 @@ export enum FiefACR {
   LEVEL_ONE = '1',
 }
 
+const ACR_LEVELS_ORDER: FiefACR[] = [FiefACR.LEVEL_ZERO, FiefACR.LEVEL_ONE];
+
+const compareACR = (a: FiefACR, b: FiefACR): number => (
+  ACR_LEVELS_ORDER.findIndex((acr) => acr === a) - ACR_LEVELS_ORDER.findIndex((acr) => acr === b)
+);
+
 /**
  * Object containing the tokens and related information
  * returned by Fief after a successful authentication.
@@ -176,6 +182,11 @@ export class FiefAccessTokenExpired extends FiefError { }
  * The access token is missing a required scope.
  */
 export class FiefAccessTokenMissingScope extends FiefError { }
+
+/**
+ * The access token doesn't meet the minimum ACR level.
+ */
+export class FiefAccessTokenACRTooLow extends FiefError { }
 
 /**
  * The access token is missing a required permission.
@@ -439,6 +450,7 @@ export class Fief {
    *
    * @param accessToken - The access token to validate.
    * @param requiredScopes - Optional list of scopes to check for.
+   * @param requiredACR - Optional minimum ACR level required. Read more: https://docs.fief.dev/going-further/acr/
    * @param requiredPermissions - Optional list of permissions to check for.
    *
    * @returns {@link FiefAccessTokenInfo}
@@ -466,6 +478,7 @@ export class Fief {
   public async validateAccessToken(
     accessToken: string,
     requiredScopes?: string[],
+    requiredACR?: FiefACR,
     requiredPermissions?: string[],
   ): Promise<FiefAccessTokenInfo> {
     const signatureKeys = jose.createLocalJWKSet(await this.getJWKS());
@@ -490,8 +503,13 @@ export class Fief {
       }
 
       const acr = claims.acr as (FiefACR | undefined);
-      if (acr === undefined) {
+      if (acr === undefined || !Object.values(FiefACR).includes(acr)) {
         throw new FiefAccessTokenInvalid();
+      }
+      if (requiredACR) {
+        if (compareACR(acr, requiredACR) < 0) {
+          throw new FiefAccessTokenACRTooLow();
+        }
       }
 
       const permissions = claims.permissions as (string[] | undefined);

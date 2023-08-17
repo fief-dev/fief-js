@@ -292,13 +292,19 @@ class FiefAuth {
    *   {
    *     matcher: '/scope',
    *     parameters: {
-   *         scope: ['required_scope']
+   *         scope: ['required_scope'],
+   *     },
+   *   },
+   *   {
+   *     matcher: '/acr',
+   *     parameters: {
+   *         acr: FiefACR.LEVEL_ONE,
    *     },
    *   },
    *   {
    *     matcher: '/permission',
    *     parameters: {
-   *         permissions: ['castles:create']
+   *         permissions: ['castles:create'],
    *     },
    *   },
    * ]);
@@ -424,6 +430,15 @@ class FiefAuth {
    * export default fiefAuth.authenticated(function handler(req, res) {
    *     res.status(200).json(req.user);
    * }, { scope: ['required_scope'] });
+   * ```
+   *
+   * @example Minimum ACR level
+   * ```ts
+   * import { fiefAuth } from "../../fief"
+   *
+   * export default fiefAuth.authenticated(function handler(req, res) {
+   *     res.status(200).json(req.user);
+   * }, { acr: FiefACR.LEVEL_ONE });
    * ```
    *
    * @example Required permissions

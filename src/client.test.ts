@@ -5,6 +5,7 @@ import {
 } from '../tests/utils';
 import {
   Fief,
+  FiefAccessTokenACRTooLow,
   FiefAccessTokenExpired,
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingPermission,
@@ -290,12 +291,36 @@ describe('validateAccessToken', () => {
     });
   });
 
+  it('should reject if invalid ACR', async () => {
+    const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
+
+    expect.assertions(1);
+    try {
+      await fief.validateAccessToken(newAccessToken, undefined, FiefACR.LEVEL_ONE);
+    } catch (err) {
+      expect(err).toBeInstanceOf(FiefAccessTokenACRTooLow);
+    }
+  });
+
+  it('should validate token with right ACR', async () => {
+    const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ONE, permissions: [] });
+
+    const info = await fief.validateAccessToken(newAccessToken, undefined, FiefACR.LEVEL_ONE);
+    expect(info).toStrictEqual({
+      id: userId,
+      scope: ['openid'],
+      acr: FiefACR.LEVEL_ONE,
+      permissions: [],
+      access_token: newAccessToken,
+    });
+  });
+
   it('should reject if missing required permission', async () => {
     const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: ['castles:read'] });
 
     expect.assertions(1);
     try {
-      await fief.validateAccessToken(newAccessToken, undefined, ['castles:create']);
+      await fief.validateAccessToken(newAccessToken, undefined, undefined, ['castles:create']);
     } catch (err) {
       expect(err).toBeInstanceOf(FiefAccessTokenMissingPermission);
     }
@@ -304,7 +329,7 @@ describe('validateAccessToken', () => {
   it('should validate token with right permissions', async () => {
     const newAccessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: ['castles:read', 'castles:create'] });
 
-    const info = await fief.validateAccessToken(newAccessToken, undefined, ['castles:create']);
+    const info = await fief.validateAccessToken(newAccessToken, undefined, undefined, ['castles:create']);
     expect(info).toStrictEqual({
       id: userId,
       scope: ['openid'],

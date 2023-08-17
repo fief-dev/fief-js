@@ -129,10 +129,21 @@ export interface FiefAuthParameters {
  * );
  * ```
  *
+ * @example Minimum ACR level
+ * ```ts
+ * app.get(
+ *     '/authenticated-acr',
+ *     fiefAuthMiddleware({ acr: FiefACR.LEVEL_ONE }),
+ *     (req, res) => {
+ *         res.json(req.accessTokenInfo);
+ *     },
+ * );
+ * ```
+ *
  * @example Required permissions
  * ```ts
  * app.get(
- *     '/authenticated-scope',
+ *     '/authenticated-permission',
  *     fiefAuthMiddleware({ permissions: ['castles:create'] }),
  *     (req, res) => {
  *         res.json(req.accessTokenInfo);

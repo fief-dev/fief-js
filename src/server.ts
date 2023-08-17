@@ -7,11 +7,13 @@ import { IncomingMessage } from 'http';
 
 import {
   Fief,
+  FiefAccessTokenACRTooLow,
   FiefAccessTokenExpired,
   FiefAccessTokenInfo,
   FiefAccessTokenInvalid,
   FiefAccessTokenMissingPermission,
   FiefAccessTokenMissingScope,
+  FiefACR,
   FiefError,
   FiefUserInfo,
 } from './client';
@@ -83,6 +85,13 @@ export interface AuthenticateRequestParameters {
   scope?: string[];
 
   /**
+   * Optional minimum ACR level required.
+   * If the access token doesn't meet the minimum level,
+   * a {@link FiefAccessTokenACRTooLow} error will be raised.
+   */
+  acr?: FiefACR;
+
+  /**
    * Optional list of permissions required.
    * If the access token lacks one of the required permission,
    * a {@link FiefAuthForbidden} error will be raised.
@@ -144,6 +153,7 @@ export class FiefAuth<RQ> {
       const {
         optional,
         scope,
+        acr,
         permissions,
         refresh,
       } = parameters;
@@ -158,7 +168,12 @@ export class FiefAuth<RQ> {
 
       if (token !== null) {
         try {
-          accessTokenInfo = await this.client.validateAccessToken(token, scope, permissions);
+          accessTokenInfo = await this.client.validateAccessToken(
+            token,
+            scope,
+            acr,
+            permissions,
+          );
           if (this.userInfoCache) {
             user = await this.userInfoCache.get(accessTokenInfo.id);
             if (user === null || refresh === true) {
@@ -174,6 +189,7 @@ export class FiefAuth<RQ> {
             throw new FiefAuthUnauthorized();
           } else if (
             err instanceof FiefAccessTokenMissingScope
+            || err instanceof FiefAccessTokenACRTooLow
             || err instanceof FiefAccessTokenMissingPermission
           ) {
             throw new FiefAuthForbidden();

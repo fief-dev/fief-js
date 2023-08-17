@@ -70,6 +70,10 @@ const testApp = (): Express => {
     res.json(req.accessTokenInfo);
   });
 
+  app.get('/authenticated-acr', fiefAuthMiddleware({ acr: FiefACR.LEVEL_ONE }), (req, res) => {
+    res.json(req.accessTokenInfo);
+  });
+
   app.get('/authenticated-permission', fiefAuthMiddleware({ permissions: ['castles:create'] }), (req, res) => {
     res.json(req.accessTokenInfo);
   });
@@ -208,6 +212,33 @@ describe('fiefAuth', () => {
         id: userId,
         scope: ['openid', 'required_scope'],
         acr: FiefACR.LEVEL_ZERO,
+        permissions: [],
+        access_token: accessToken,
+      });
+    });
+  });
+
+  describe('acr', () => {
+    it('should throw 403 if invalid ACR', async () => {
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ZERO, permissions: [] });
+      const response = await request(testApp())
+        .get('/authenticated-acr')
+        .set('Authorization', `Bearer ${accessToken}`)
+        ;
+      expect(response.statusCode).toEqual(403);
+    });
+
+    it('should set accessTokenInfo in Request object if valid ACR', async () => {
+      const accessToken = await generateToken(false, { scope: 'openid', acr: FiefACR.LEVEL_ONE, permissions: [] });
+      const response = await request(testApp())
+        .get('/authenticated-acr')
+        .set('Authorization', `Bearer ${accessToken}`)
+        ;
+      expect(response.statusCode).toEqual(200);
+      expect(response.body).toEqual({
+        id: userId,
+        scope: ['openid'],
+        acr: FiefACR.LEVEL_ONE,
         permissions: [],
         access_token: accessToken,
       });
