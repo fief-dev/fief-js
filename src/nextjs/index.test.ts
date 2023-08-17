@@ -286,6 +286,7 @@ describe('authenticated', () => {
     expect(req.accessTokenInfo).toEqual({
       id: userId,
       scope: ['openid'],
+      acr: FiefACR.LEVEL_ZERO,
       permissions: [],
       access_token: 'ACCESS_TOKEN',
     });
@@ -317,6 +318,7 @@ describe('authenticated', () => {
       expect(req.accessTokenInfo).toEqual({
         id: userId,
         scope: ['openid'],
+        acr: FiefACR.LEVEL_ZERO,
         permissions: [],
         access_token: 'ACCESS_TOKEN',
       });
@@ -342,6 +344,7 @@ describe('authenticated', () => {
       expect(req.accessTokenInfo).toEqual({
         id: userId,
         scope: ['openid', 'required_scope'],
+        acr: FiefACR.LEVEL_ZERO,
         permissions: [],
         access_token: 'ACCESS_TOKEN',
       });
@@ -368,6 +371,7 @@ describe('authenticated', () => {
       expect(req.accessTokenInfo).toEqual({
         id: userId,
         scope: ['openid'],
+        acr: FiefACR.LEVEL_ZERO,
         permissions: ['castles:read', 'castles:create'],
         access_token: 'ACCESS_TOKEN',
       });
