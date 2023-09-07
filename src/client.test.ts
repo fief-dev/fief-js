@@ -238,6 +238,15 @@ describe('authRefreshToken', () => {
 });
 
 describe('validateAccessToken', () => {
+  it('should reject invalid token', async () => {
+    expect.assertions(1);
+    try {
+      await fief.validateAccessToken('INVALID_TOKEN');
+    } catch (err) {
+      expect(err).toBeInstanceOf(FiefAccessTokenInvalid);
+    }
+  });
+
   it('should reject invalid signature', async () => {
     expect.assertions(1);
     try {
