@@ -1,5 +1,3 @@
-import nodeFetch from 'node-fetch';
-
 export class FetchHelperError extends Error {}
 
 export const getFetch = (): typeof fetch => {
@@ -15,11 +13,6 @@ export const getFetch = (): typeof fetch => {
 
   if (typeof globalThis !== 'undefined' && globalThis.fetch) {
     return globalThis.fetch.bind(globalThis);
-  }
-
-  if (typeof require === 'function') {
-    // @ts-ignore
-    return nodeFetch as typeof fetch;
   }
 
   throw new FetchHelperError('Cannot find a fetch implementation for your environment');

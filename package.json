@@ -41,7 +41,6 @@
     "@types/express-session": "^1.17.5",
     "@types/jest": "^29.0.3",
     "@types/node": "^18.7.18",
-    "@types/node-fetch": "^2.6.2",
     "@types/ramda": "^0.29.3",
     "@types/react": "^18.0.12",
     "@types/react-dom": "^18.0.6",
@@ -76,7 +75,6 @@
   "dependencies": {
     "encoding": "^0.1.13",
     "jose": "^4.6.0",
-    "node-fetch": "^2.6.7",
     "path-to-regexp": "^6.2.1"
   },
   "jest": {}

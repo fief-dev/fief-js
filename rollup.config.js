@@ -15,15 +15,6 @@ export default [
       sourcemap: true,
     },
     plugins: [
-      {
-        name: 'Fake node-fetch in browser build',
-        resolveId: (source, _importer, _options) => {
-          if (source === 'node-fetch') {
-            return './src/fetch/node-fetch-fake.ts';
-          }
-          return null;
-        },
-      },
       nodeResolve({
         jsnext: true,
         preferBuiltins: true,
