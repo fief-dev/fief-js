@@ -171,6 +171,8 @@ export class FiefAuth {
 
   private crypto: ICryptoHelper;
 
+  private pendingAuthCallbacks: Set<string>;
+
   /**
    * @param client - Instance of a {@link Fief} client.
    */
@@ -182,6 +184,7 @@ export class FiefAuth {
       this.storage = new FiefAuthStorage();
     }
     this.crypto = getCrypto();
+    this.pendingAuthCallbacks = new Set();
   }
 
   /**
@@ -299,14 +302,24 @@ export class FiefAuth {
       throw new FiefAuthAuthorizeError('missing_code');
     }
 
+    // Prevent authCallback request to be triggered twice with the same code.
+    // Useful for frameworks like React which tends to re-render agressively.
+    if (this.pendingAuthCallbacks.has(code)) {
+      return;
+    }
+
     const codeVerifier = this.storage.getCodeVerifier();
     this.storage.clearCodeVerifier();
+
+    this.pendingAuthCallbacks.add(code);
 
     const [tokenResponse, userinfo] = await this.client.authCallback(
       code,
       redirectURI,
       codeVerifier || undefined,
     );
+
+    this.pendingAuthCallbacks.delete(code);
 
     this.storage.setTokenInfo(tokenResponse);
     this.storage.setUserinfo(userinfo);
