@@ -1,8 +1,18 @@
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
-import { terser } from 'rollup-plugin-terser';
+
+const external = [
+  'crypto',
+  'jose',
+  'next',
+  'next/server',
+  'path-to-regexp',
+  'react',
+  'react/jsx-runtime',
+];
 
 export default [
   // browser-friendly UMD build
@@ -15,15 +25,6 @@ export default [
       sourcemap: true,
     },
     plugins: [
-      {
-        name: 'Fake node-fetch in browser build',
-        resolveId: (source, _importer, _options) => {
-          if (source === 'node-fetch') {
-            return './src/fetch/node-fetch-fake.ts';
-          }
-          return null;
-        },
-      },
       nodeResolve({
         jsnext: true,
         preferBuiltins: true,
@@ -60,6 +61,7 @@ export default [
         preserveModulesRoot: 'src',
       },
     ],
+    external,
   },
   // ES module (for bundlers) build.
   {
@@ -87,5 +89,6 @@ export default [
         preserveModulesRoot: 'src',
       },
     ],
+    external,
   },
 ];
