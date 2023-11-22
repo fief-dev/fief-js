@@ -145,11 +145,25 @@ export interface FiefAuthParameters {
   userIdHeaderName?: string;
 
   /**
+   * Name of the request header where user information is made available by middleware.
+   *
+   * Defaults to `X-FiefAuth-User-Info`.
+   */
+  userInfoHeaderName?: string;
+
+  /**
    * Name of the request header where access token is made available by middleware.
    *
    * Defaults to `X-FiefAuth-Access-Token`.
    */
   accessTokenHeaderName?: string;
+
+  /**
+   * Name of the request header where access token information is made available by middleware.
+   *
+   * Defaults to `X-FiefAuth-Access-Token-Info`.
+   */
+  accessTokenInfoHeaderName?: string;
 }
 
 export interface PathConfig {
@@ -224,7 +238,11 @@ class FiefAuth {
 
   private userIdHeaderName: string;
 
+  private userInfoHeaderName: string;
+
   private accessTokenHeaderName: string;
+
+  private accessTokenInfoHeaderName: string;
 
   constructor(parameters: FiefAuthParameters) {
     this.client = parameters.client;
@@ -264,7 +282,9 @@ class FiefAuth {
     ;
 
     this.userIdHeaderName = parameters.userIdHeaderName ? parameters.userIdHeaderName : 'X-FiefAuth-User-Id';
+    this.userInfoHeaderName = parameters.userInfoHeaderName ? parameters.userInfoHeaderName : 'X-FiefAuth-User-Info';
     this.accessTokenHeaderName = parameters.accessTokenHeaderName ? parameters.accessTokenHeaderName : 'X-FiefAuth-Access-Token';
+    this.accessTokenInfoHeaderName = parameters.accessTokenInfoHeaderName ? parameters.accessTokenInfoHeaderName : 'X-FiefAuth-Access-Token-Info';
   }
 
   /**
@@ -383,6 +403,13 @@ class FiefAuth {
           if (result.accessTokenInfo) {
             requestHeaders.set(this.userIdHeaderName, result.accessTokenInfo.id);
             requestHeaders.set(this.accessTokenHeaderName, result.accessTokenInfo.access_token);
+            requestHeaders.set(
+              this.accessTokenInfoHeaderName,
+              JSON.stringify(result.accessTokenInfo),
+            );
+          }
+          if (result.user) {
+            requestHeaders.set(this.userInfoHeaderName, JSON.stringify(result.user));
           }
           return NextResponse.next({ request: { headers: requestHeaders } });
         } catch (err) {

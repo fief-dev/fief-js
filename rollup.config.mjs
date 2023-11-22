@@ -8,6 +8,7 @@ const external = [
   'crypto',
   'jose',
   'next',
+  'next/headers',
   'next/server',
   'path-to-regexp',
   'react',
@@ -44,6 +45,7 @@ export default [
       'src/express/index.ts',
       'src/nextjs/index.ts',
       'src/nextjs/react.tsx',
+      'src/nextjs/server.ts',
     ],
     plugins: [
       typescript({
@@ -71,6 +73,7 @@ export default [
       'src/express/index.ts',
       'src/nextjs/index.ts',
       'src/nextjs/react.tsx',
+      'src/nextjs/server.ts',
     ],
     plugins: [
       typescript({
