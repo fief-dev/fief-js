@@ -1,0 +1,7 @@
+{
+  "name": "@fief/fief/nextjs/server",
+  "private": true,
+  "main": "../../build/cjs/nextjs/server.js",
+  "module": "../../build/esm/nextjs/server.js",
+  "types": "../../build/esm/nextjs/server.d.ts"
+}
