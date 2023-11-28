@@ -5,6 +5,8 @@
  */
 import type { IncomingMessage, OutgoingMessage } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { revalidateTag } from 'next/cache';
+import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { pathToRegexp } from 'path-to-regexp';
 
@@ -29,6 +31,16 @@ const defaultAPIUnauthorizedResponse = async (req: NextApiRequest, res: NextApiR
 
 const defaultAPIForbiddenResponse = async (req: NextApiRequest, res: NextApiResponse) => {
   res.status(403).send('Forbidden');
+};
+
+const getServerSideHeaders = (headerName: string, req?: IncomingMessage): string | null => {
+  // "Legacy" Next.js, req object is required
+  if (req) {
+    return req.headers[headerName.toLowerCase()] as string | null;
+  }
+  // Next.js 14 style
+  const headersList = headers();
+  return headersList.get(headerName);
 };
 
 type FiefNextApiHandler<T> = (
@@ -145,13 +157,6 @@ export interface FiefAuthParameters {
   userIdHeaderName?: string;
 
   /**
-   * Name of the request header where user information is made available by middleware.
-   *
-   * Defaults to `X-FiefAuth-User-Info`.
-   */
-  userInfoHeaderName?: string;
-
-  /**
    * Name of the request header where access token is made available by middleware.
    *
    * Defaults to `X-FiefAuth-Access-Token`.
@@ -238,8 +243,6 @@ class FiefAuth {
 
   private userIdHeaderName: string;
 
-  private userInfoHeaderName: string;
-
   private accessTokenHeaderName: string;
 
   private accessTokenInfoHeaderName: string;
@@ -282,7 +285,6 @@ class FiefAuth {
     ;
 
     this.userIdHeaderName = parameters.userIdHeaderName ? parameters.userIdHeaderName : 'X-FiefAuth-User-Id';
-    this.userInfoHeaderName = parameters.userInfoHeaderName ? parameters.userInfoHeaderName : 'X-FiefAuth-User-Info';
     this.accessTokenHeaderName = parameters.accessTokenHeaderName ? parameters.accessTokenHeaderName : 'X-FiefAuth-Access-Token';
     this.accessTokenInfoHeaderName = parameters.accessTokenInfoHeaderName ? parameters.accessTokenInfoHeaderName : 'X-FiefAuth-Access-Token-Info';
   }
@@ -408,9 +410,6 @@ class FiefAuth {
               JSON.stringify(result.accessTokenInfo),
             );
           }
-          if (result.user) {
-            requestHeaders.set(this.userInfoHeaderName, JSON.stringify(result.user));
-          }
           return NextResponse.next({ request: { headers: requestHeaders } });
         } catch (err) {
           if (err instanceof FiefAuthUnauthorized) {
@@ -532,6 +531,64 @@ class FiefAuth {
         { optional: true, refresh },
       )(req, res as NextApiResponse);
     };
+  }
+
+  /**
+   * Return the user ID set in headers by the Fief middleware, or `null` if not authenticated.
+   *
+   * This function is suitable for server-side rendering in Next.js.
+   *
+   * @param req - Next.js request object. Required for older versions of Next.js
+   * not supporting the `headers()` function.
+   * @returns The user ID, or null if not available.
+   */
+  public getUserId(req?: IncomingMessage): string | null {
+    return getServerSideHeaders(this.userIdHeaderName, req);
+  }
+
+  /**
+   * Return the access token information set in headers by the Fief middleware,
+   * or `null` if not authenticated.
+   *
+   * This function is suitable for server-side rendering in Next.js.
+   *
+   * @param req - Next.js request object. Required for older versions of Next.js
+   * not supporting the `headers()` function.
+   * @returns he access token information, or null if not available.
+   */
+  public getAccessTokenInfo(req?: IncomingMessage): FiefAccessTokenInfo | null {
+    const rawAccessTokenInfo = getServerSideHeaders(this.accessTokenInfoHeaderName, req);
+    return rawAccessTokenInfo ? JSON.parse(rawAccessTokenInfo) : null;
+  }
+
+  /**
+   * Fetch the user information object from the Fief API, if access token is available.
+   *
+   * This function is suitable for server-side rendering in Next.js.
+   *
+   * @param req - Next.js request object. Required for older versions of Next.js
+   * not supporting the `headers()` function.
+   * @param refresh - If `true`, the user information will be refreshed from the Fief API.
+   * Otherwise, Next.js fetch cache will be used.
+   * @returns The user information, or null if access token is not available.
+   */
+  public async getUserInfo(
+    req?: IncomingMessage,
+    refresh: boolean = false,
+  ): Promise<FiefUserInfo | null> {
+    const accessTokenInfo = this.getAccessTokenInfo(req);
+    if (accessTokenInfo === null) {
+      return null;
+    }
+    const userId = accessTokenInfo.id;
+    if (refresh && !req) {
+      revalidateTag(userId);
+    }
+    const userinfo = await this.client.userinfo(
+      accessTokenInfo.access_token,
+      { cache: 'force-cache', next: { tags: [userId] } },
+    );
+    return userinfo;
   }
 }
 

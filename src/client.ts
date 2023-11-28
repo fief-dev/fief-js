@@ -228,6 +228,16 @@ export interface FiefParameters {
    * @see [ID Token encryption](https://docs.fief.dev/going-further/id-token-encryption/)
    */
   encryptionKey?: string;
+
+  /**
+   * Additional fetch init options for `getOpenIDConfiguration` and `getJWKS` requests.
+   *
+   * Mostly useful to control fetch cache.
+   *
+   * @see [fetch cache property](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache)
+   * @see [Next.js fetch](https://nextjs.org/docs/app/api-reference/functions/fetch#fetchurl-options)
+   */
+  requestInit?: RequestInit;
 }
 
 /**
@@ -253,6 +263,8 @@ export class Fief {
 
   private fetch: typeof fetch;
 
+  private requestInit?: RequestInit;
+
   private openIDConfiguration?: Record<string, any>;
 
   private jwks?: jose.JSONWebKeySet;
@@ -274,6 +286,7 @@ export class Fief {
     }
 
     this.fetch = getFetch();
+    this.requestInit = parameters.requestInit;
 
     this.crypto = getCrypto();
   }
@@ -348,6 +361,7 @@ export class Fief {
    * @param redirectURI - The exact same `redirectURI` you passed to the authorization URL.
    * @param codeVerifier - The raw [PKCE](https://docs.fief.dev/going-further/pkce/) code
    * used to generate the code challenge during authorization.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns A token response and user information.
    *
@@ -360,6 +374,7 @@ export class Fief {
     code: string,
     redirectURI: string,
     codeVerifier?: string,
+    requestInit?: RequestInit,
   ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
     const payload = serializeQueryString({
@@ -374,9 +389,11 @@ export class Fief {
     const response = await this.fetch(
       openIDConfiguration.token_endpoint,
       {
+        ...requestInit || {},
         method: 'POST',
         body: payload,
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       },
@@ -402,6 +419,7 @@ export class Fief {
    * If not provided, the access token will share the same list of scopes
    * as requested the first time.
    * Otherwise, it should be a subset of the original list of scopes.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns A token response and user information.
    *
@@ -413,6 +431,7 @@ export class Fief {
   public async authRefreshToken(
     refreshToken: string,
     scope?: string[],
+    requestInit?: RequestInit,
   ): Promise<[FiefTokenResponse, FiefUserInfo]> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
     const payload = serializeQueryString({
@@ -425,9 +444,11 @@ export class Fief {
     const response = await this.fetch(
       openIDConfiguration.token_endpoint,
       {
+        ...requestInit || {},
         method: 'POST',
         body: payload,
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       },
@@ -452,6 +473,7 @@ export class Fief {
    * @param requiredScopes - Optional list of scopes to check for.
    * @param requiredACR - Optional minimum ACR level required. Read more: https://docs.fief.dev/going-further/acr/
    * @param requiredPermissions - Optional list of permissions to check for.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns {@link FiefAccessTokenInfo}
    * @throws {@link FiefAccessTokenInvalid} if the access token is invalid.
@@ -548,6 +570,7 @@ export class Fief {
    * Return fresh {@link FiefUserInfo} from the Fief API using a valid access token.
    *
    * @param accessToken - A valid access token.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns Fresh user information.
    *
@@ -556,13 +579,15 @@ export class Fief {
    * userinfo = await fief.userinfo('ACCESS_TOKEN');
    * ```
    */
-  public async userinfo(accessToken: string): Promise<FiefUserInfo> {
+  public async userinfo(accessToken: string, requestInit?: RequestInit): Promise<FiefUserInfo> {
     const openIDConfiguration = await this.getOpenIDConfiguration();
     const response = await this.fetch(
       openIDConfiguration.userinfo_endpoint,
       {
+        ...requestInit || {},
         method: 'GET',
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           Authorization: `Bearer ${accessToken}`,
         },
       },
@@ -577,6 +602,7 @@ export class Fief {
    *
    * @param accessToken - A valid access token.
    * @param data - An object containing the data to update.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns Updated user information.
    *
@@ -590,14 +616,17 @@ export class Fief {
   public async updateProfile(
     accessToken: string,
     data: Record<string, any>,
+    requestInit?: RequestInit,
   ): Promise<FiefUserInfo> {
     const updateProfileEndpoint = `${this.baseURL}/api/profile`;
     const response = await this.fetch(
       updateProfileEndpoint,
       {
+        ...requestInit || {},
         method: 'PATCH',
         body: JSON.stringify(data),
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -615,6 +644,7 @@ export class Fief {
    *
    * @param accessToken - A valid access token.
    * @param newPassword - The new password.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns Updated user information.
    *
@@ -626,14 +656,17 @@ export class Fief {
   public async changePassword(
     accessToken: string,
     newPassword: string,
+    requestInit?: RequestInit,
   ): Promise<FiefUserInfo> {
     const updateProfileEndpoint = `${this.baseURL}/api/password`;
     const response = await this.fetch(
       updateProfileEndpoint,
       {
+        ...requestInit || {},
         method: 'PATCH',
         body: JSON.stringify({ password: newPassword }),
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -654,6 +687,7 @@ export class Fief {
    *
    * @param accessToken - A valid access token.
    * @param newPassword - The new email address.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns Updated user information.
    *
@@ -665,14 +699,17 @@ export class Fief {
   public async emailChange(
     accessToken: string,
     email: string,
+    requestInit?: RequestInit,
   ): Promise<FiefUserInfo> {
     const updateProfileEndpoint = `${this.baseURL}/api/email/change`;
     const response = await this.fetch(
       updateProfileEndpoint,
       {
+        ...requestInit || {},
         method: 'PATCH',
         body: JSON.stringify({ email }),
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -691,6 +728,7 @@ export class Fief {
    *
    * @param accessToken - A valid access token.
    * @param newPassword - The new email address.
+   * @param requestInit - Additional fetch init options. Mostly useful to control fetch cache.
    *
    * @returns Updated user information.
    *
@@ -702,14 +740,17 @@ export class Fief {
   public async emailVerify(
     accessToken: string,
     code: string,
+    requestInit?: RequestInit,
   ): Promise<FiefUserInfo> {
     const updateProfileEndpoint = `${this.baseURL}/api/email/verify`;
     const response = await this.fetch(
       updateProfileEndpoint,
       {
+        ...requestInit || {},
         method: 'POST',
         body: JSON.stringify({ code }),
         headers: {
+          ...requestInit && requestInit.headers ? requestInit.headers : {},
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -752,6 +793,7 @@ export class Fief {
     const response = await this.fetch(
       `${this.baseURL}/.well-known/openid-configuration`,
       {
+        ...this.requestInit || {},
         method: 'GET',
       },
     );
@@ -771,6 +813,7 @@ export class Fief {
     const response = await this.fetch(
       openIDConfiguration.jwks_uri,
       {
+        ...this.requestInit || {},
         method: 'GET',
       },
     );

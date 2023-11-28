@@ -45,7 +45,6 @@ export default [
       'src/express/index.ts',
       'src/nextjs/index.ts',
       'src/nextjs/react.tsx',
-      'src/nextjs/server.ts',
     ],
     plugins: [
       typescript({
@@ -73,7 +72,6 @@ export default [
       'src/express/index.ts',
       'src/nextjs/index.ts',
       'src/nextjs/react.tsx',
-      'src/nextjs/server.ts',
     ],
     plugins: [
       typescript({

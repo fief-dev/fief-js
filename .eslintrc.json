@@ -5,6 +5,9 @@
     "node": true,
     "jest/globals": true
   },
+  "globals": {
+    "RequestInit": true
+  },
   "ignorePatterns": [
     "build/"
   ],
