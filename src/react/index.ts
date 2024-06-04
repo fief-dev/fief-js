@@ -17,10 +17,12 @@ import { FiefAuthState } from './storage';
 export {
   FiefAuthContext,
   FiefAuthProvider,
-  FiefAuthProviderProps,
-  FiefAuthState,
   useFiefAuth,
   useFiefIsAuthenticated,
   useFiefTokenInfo,
   useFiefUserinfo,
+};
+export type {
+  FiefAuthProviderProps,
+  FiefAuthState,
 };

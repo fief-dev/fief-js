@@ -193,10 +193,12 @@ const createMiddleware = (parameters: FiefAuthParameters) => {
 };
 
 export {
-  AuthenticateRequestParameters,
   authorizationSchemeGetter,
   cookieGetter,
   createMiddleware,
+};
+export type {
+  AuthenticateRequestParameters,
   IUserInfoCache,
   TokenGetter,
 };

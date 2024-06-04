@@ -593,7 +593,9 @@ class FiefAuth {
 }
 
 export {
-  AuthenticateRequestParameters,
   FiefAuth,
+};
+export type {
+  AuthenticateRequestParameters,
   IUserInfoCache,
 };

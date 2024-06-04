@@ -8,12 +8,16 @@ const external = [
   'crypto',
   'jose',
   'next',
+  'next/cache',
   'next/headers',
   'next/server',
   'path-to-regexp',
   'react',
   'react/jsx-runtime',
 ];
+const globals = {
+  crypto: 'crypto',
+};
 
 export default [
   // browser-friendly UMD build
@@ -24,6 +28,7 @@ export default [
       file: 'build/index.umd.js',
       format: 'umd',
       sourcemap: true,
+      globals,
     },
     plugins: [
       nodeResolve({
@@ -44,7 +49,7 @@ export default [
       'src/react/index.ts',
       'src/express/index.ts',
       'src/nextjs/index.ts',
-      'src/nextjs/react.tsx',
+      'src/nextjs/react/index.ts',
     ],
     plugins: [
       typescript({
@@ -60,6 +65,7 @@ export default [
         sourcemap: true,
         preserveModules: true,
         preserveModulesRoot: 'src',
+        globals,
       },
     ],
     external,
@@ -71,7 +77,7 @@ export default [
       'src/react/index.ts',
       'src/express/index.ts',
       'src/nextjs/index.ts',
-      'src/nextjs/react.tsx',
+      'src/nextjs/react/index.ts',
     ],
     plugins: [
       typescript({
@@ -88,6 +94,7 @@ export default [
         sourcemap: true,
         preserveModules: true,
         preserveModulesRoot: 'src',
+        globals,
       },
     ],
     external,
