@@ -28,4 +28,5 @@ export const getCrypto = (): ICryptoHelper => {
   throw new CryptoHelperError('Cannot find a crypto implementation for your environment');
 };
 
-export { CryptoHelperError, ICryptoHelper };
+export { CryptoHelperError };
+export type { ICryptoHelper };

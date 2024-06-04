@@ -10,6 +10,8 @@
     "removeComments": false,
     "preserveConstEnums": true,
     "sourceMap": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "esModuleInterop": true
   }
 }

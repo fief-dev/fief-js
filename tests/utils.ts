@@ -6,7 +6,7 @@ import * as keys from './jwks.json';
 
 const jwks: jose.JSONWebKeySet = keys;
 export const signatureKey = jwks.keys.find((key) => key.kid === 'fief-client-tests-sig');
-export const signatureKeyPublic = R.pick(['kty', 'use', 'kid', 'n', 'e'], signatureKey);
+export const signatureKeyPublic = signatureKey && R.pick(['kty', 'use', 'kid', 'n', 'e'], signatureKey);
 export const encryptionKey = jwks.keys.find((key) => key.kid === 'fief-client-tests-enc');
 
 export const userId = uuidv4();

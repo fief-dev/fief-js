@@ -1,7 +1,11 @@
 {
   "name": "@fief/fief/nextjs/react",
   "private": true,
-  "main": "../../build/cjs/nextjs/react.js",
-  "module": "../../build/esm/nextjs/react.js",
-  "types": "../../build/esm/nextjs/react.d.ts"
+  "main": "../../build/cjs/nextjs/react/index.js",
+  "module": "../../build/esm/nextjs/react/index.js",
+  "types": "../../build/esm/nextjs/react/index.d.ts",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
 }
