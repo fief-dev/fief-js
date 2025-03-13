@@ -274,7 +274,7 @@ export class FiefAuth {
       codeChallenge,
       codeChallengeMethod: 'S256',
       ...parameters?.state ? { state: parameters.state } : {},
-      ...parameters?.state ? { lang: parameters.lang } : {},
+      ...parameters?.lang ? { lang: parameters.lang } : {},
       ...parameters?.extrasParams ? { extrasParams: parameters.extrasParams } : {},
     });
     window.location.href = authorizeURL;
